@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="zarvan_calendar.ZarvanTodaySystray">
+        <div class="o_zarvan_today_systray position-relative d-flex align-items-center me-2" t-ref="root">
+            <button class="btn btn-sm btn-outline-light text-dark bg-light border rounded-pill px-2.5 py-1 d-flex align-items-center gap-1.5 shadow-xs"
+                    type="button"
+                    t-on-click="toggleDropdown"
+                    title="تقویم زروان - امروز">
+                <i class="fa fa-calendar-check-o text-success"/>
+                <span class="fw-bold small d-none d-md-inline" t-out="state.weekdayName"/>
+                <span class="small" t-out="state.jalaliDate"/>
+                <t t-if="state.isHoliday">
+                    <span class="badge bg-danger rounded-pill px-1.5 py-0.5 ms-1" style="font-size: 10px;">تعطیل</span>
+                </t>
+            </button>
+
+            <t t-if="state.isOpen">
+                <div class="position-absolute end-0 top-100 mt-1 bg-white border rounded shadow-lg p-3 z-3"
+                     style="width: 290px; direction: rtl; text-align: right;">
+                    <div class="d-flex align-items-center justify-content-between pb-2 border-bottom mb-2">
+                        <span class="fw-bold text-success d-flex align-items-center gap-1">
+                            <i class="fa fa-calendar me-1"/> تقویم زروان (امروز)
+                        </span>
+                        <button class="btn btn-sm btn-close" type="button" t-on-click="closeDropdown"/>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span>تاریخ خورشیدی:</span>
+                            <button class="btn btn-xs btn-outline-primary py-0 px-1.5 rounded"
+                                    type="button"
+                                    t-on-click="copyTodayDate"
+                                    title="کپی تاریخ عددی">
+                                <t t-if="state.copied">
+                                    <span class="text-success"><i class="fa fa-check me-1"/> کپی شد!</span>
+                                </t>
+                                <t t-else="">
+                                    <span><i class="fa fa-copy me-1"/> کپی</span>
+                                </t>
+                            </button>
+                        </div>
+                        <div class="fw-bold fs-6 text-primary">
+                            <t t-out="state.weekdayName"/>، <t t-out="state.jalaliDate"/>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">تاریخ میلادی متناظر:</div>
+                        <div class="font-monospace small text-dark" t-out="state.gregorianDate"/>
+                    </div>
+
+                    <t t-if="state.isHoliday">
+                        <div class="alert alert-danger py-1 px-2 mb-2 small d-flex align-items-center gap-1 rounded">
+                            <i class="fa fa-bell-o text-danger"/>
+                            <span t-out="state.holidayName"/>
+                        </div>
+                    </t>
+
+                    <!-- Fast Inline Date Converter -->
+                    <div class="pt-2 border-top mb-2">
+                        <div class="text-muted small mb-1 fw-bold">تبدیل سریع تاریخ:</div>
+                        <input type="text"
+                               class="form-control form-control-sm text-start font-monospace"
+                               placeholder="مثال: 1405/01/01 یا 2026-03-21"
+                               t-att-value="state.converterInput"
+                               t-on-input="onConverterInput"/>
+                        <t t-if="state.converterOutput">
+                            <div class="small fw-bold text-primary mt-1 bg-light p-1 rounded text-center"
+                                 t-out="state.converterOutput"/>
+                        </t>
+                    </div>
+
+                    <button class="btn btn-sm btn-outline-success w-100" type="button" t-on-click="openCalendar">
+                        <i class="fa fa-list me-1"/> مدیریت مناسبت‌ها و تعطیلات
+                    </button>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

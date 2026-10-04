@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_jalaali_import_wizard_form" model="ir.ui.view">
+        <field name="name">jalaali.import.wizard.form</field>
+        <field name="model">jalaali.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Jalali Holidays">
+                <field name="state" invisible="1"/>
+                <sheet>
+                    <div invisible="state != 'draft'">
+                        <group>
+                            <group string="File Selection">
+                                <field name="file_data" filename="filename"/>
+                                <field name="filename" invisible="1"/>
+                                <field name="has_header"/>
+                                <field name="delimiter"/>
+                            </group>
+                            <group string="Import Settings">
+                                <field name="date_format_mode"/>
+                                <field name="encoding"/>
+                                <field name="force_import"/>
+                                <field name="create_company_specific"/>
+                                <field name="company_id" invisible="not create_company_specific"/>
+                            </group>
+                        </group>
+                    </div>
+
+                    <div invisible="state != 'preview'">
+                        <group string="File Preview">
+                            <field name="preview_data" readonly="1" widget="text"/>
+                        </group>
+                    </div>
+
+                    <div invisible="state != 'done'">
+                        <group string="Import Summary">
+                            <field name="import_log" readonly="1"/>
+                        </group>
+                    </div>
+                </sheet>
+                <footer>
+                    <button name="action_import" string="Execute Import" type="object" class="btn-primary" invisible="state == 'done'"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" invisible="state == 'done'"/>
+                    <button string="Close" class="btn-secondary" special="cancel" invisible="state != 'done'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_jalaali_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import Holidays</field>
+        <field name="res_model">jalaali.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

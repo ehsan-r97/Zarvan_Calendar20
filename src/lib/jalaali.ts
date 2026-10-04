@@ -1,0 +1,218 @@
+import jalaali from 'jalaali-js';
+
+export interface JalaaliDate {
+  year: number;
+  month: number;
+  day: number;
+}
+
+export interface GregorianDate {
+  year: number;
+  month: number;
+  day: number;
+}
+
+export const PERSIAN_MONTHS = [
+  { id: 1, name: 'فروردین', latin: 'Farvardin', season: 'بهار (Spring)', days: 31 },
+  { id: 2, name: 'اردیبهشت', latin: 'Ordibehesht', season: 'بهار (Spring)', days: 31 },
+  { id: 3, name: 'خرداد', latin: 'Khordad', season: 'بهار (Spring)', days: 31 },
+  { id: 4, name: 'تیر', latin: 'Tir', season: 'تابستان (Summer)', days: 31 },
+  { id: 5, name: 'مرداد', latin: 'Mordad', season: 'تابستان (Summer)', days: 31 },
+  { id: 6, name: 'شهریور', latin: 'Shahrivar', season: 'تابستان (Summer)', days: 31 },
+  { id: 7, name: 'مهر', latin: 'Mehr', season: 'پاییز (Autumn)', days: 30 },
+  { id: 8, name: 'آبان', latin: 'Aban', season: 'پاییز (Autumn)', days: 30 },
+  { id: 9, name: 'آذر', latin: 'Azar', season: 'پاییز (Autumn)', days: 30 },
+  { id: 10, name: 'دی', latin: 'Dey', season: 'زمستان (Winter)', days: 30 },
+  { id: 11, name: 'بهمن', latin: 'Bahman', season: 'زمستان (Winter)', days: 30 },
+  { id: 12, name: 'اسفند', latin: 'Esfand', season: 'زمستان (Winter)', days: 29 }, // 30 in leap
+];
+
+export const PERSIAN_WEEKDAYS = [
+  { index: 0, name: 'شنبه', short: 'ش', latin: 'Shanbeh', english: 'Saturday' },
+  { index: 1, name: 'یکشنبه', short: 'ی', latin: 'Yekshanbeh', english: 'Sunday' },
+  { index: 2, name: 'دوشنبه', short: 'د', latin: 'Doshanbeh', english: 'Monday' },
+  { index: 3, name: 'سه‌شنبه', short: 'س', latin: 'Seshanbeh', english: 'Tuesday' },
+  { index: 4, name: 'چهارشنبه', short: 'چ', latin: 'Chaharshanbeh', english: 'Wednesday' },
+  { index: 5, name: 'پنج‌شنبه', short: 'پ', latin: 'Panjshanbeh', english: 'Thursday' },
+  { index: 6, name: 'جمعه', short: 'ج', latin: 'Jomeh', english: 'Friday' },
+];
+
+export function toPersianDigits(value: string | number): string {
+  const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return String(value).replace(/\d/g, (d) => persianDigits[parseInt(d, 10)]);
+}
+
+export function toLatinDigits(value: string): string {
+  const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  let res = value;
+  persianDigits.forEach((pd, i) => {
+    res = res.replace(new RegExp(pd, 'g'), String(i));
+  });
+  return res;
+}
+
+export function isLeapYear(year: number): boolean {
+  return jalaali.isLeapJalaaliYear(year);
+}
+
+export function getDaysInJalaaliMonth(year: number, month: number): number {
+  if (month < 1 || month > 12) return 30;
+  return jalaali.jalaaliMonthLength(year, month);
+}
+
+export function jalaaliToGregorian(jy: number, jm: number, jd: number): GregorianDate | null {
+  try {
+    if (!jalaali.isValidJalaaliDate(jy, jm, jd)) {
+      return null;
+    }
+    const res = jalaali.toGregorian(jy, jm, jd);
+    return {
+      year: res.gy,
+      month: res.gm,
+      day: res.gd,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function gregorianToJalaali(gy: number, gm: number, gd: number): JalaaliDate | null {
+  try {
+    const res = jalaali.toJalaali(gy, gm, gd);
+    return {
+      year: res.jy,
+      month: res.jm,
+      day: res.jd,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns weekday index in Jalali week (0 = Saturday, 6 = Friday)
+ */
+export function getJalaaliWeekday(jy: number, jm: number, jd: number): number {
+  const greg = jalaaliToGregorian(jy, jm, jd);
+  if (!greg) return 0;
+  const jsDate = new Date(greg.year, greg.month - 1, greg.day);
+  // jsDate.getDay(): 0=Sunday, 1=Monday, ..., 6=Saturday
+  // Persian: Saturday=0, Sunday=1, ..., Friday=6
+  const jsDay = jsDate.getDay();
+  return (jsDay + 1) % 7;
+}
+
+export function getCurrentJalaaliDate(): JalaaliDate & {
+  weekday: number;
+  weekdayName: string;
+  formatted: string;
+  persianFormatted: string;
+  gregorianDate: string;
+} {
+  const now = new Date();
+  const res = jalaali.toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  const jsDay = now.getDay();
+  const weekday = (jsDay + 1) % 7;
+  const formatted = `${res.jy}/${String(res.jm).padStart(2, '0')}/${String(res.jd).padStart(2, '0')}`;
+  const gregFormatted = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  return {
+    year: res.jy,
+    month: res.jm,
+    day: res.jd,
+    weekday,
+    weekdayName: PERSIAN_WEEKDAYS[weekday].name,
+    formatted,
+    persianFormatted: toPersianDigits(formatted),
+    gregorianDate: gregFormatted,
+  };
+}
+
+export function formatDate(
+  year: number,
+  month: number,
+  day: number,
+  format: string = 'YYYY/MM/DD',
+  usePersianNumbers: boolean = false
+): string {
+  const yStr = String(year);
+  const mStr = String(month).padStart(2, '0');
+  const dStr = String(day).padStart(2, '0');
+
+  let result = format
+    .replace('YYYY', yStr)
+    .replace('MM', mStr)
+    .replace('DD', dStr);
+
+  return usePersianNumbers ? toPersianDigits(result) : result;
+}
+
+export function parseDateString(str: string): {
+  isJalali: boolean;
+  year: number;
+  month: number;
+  day: number;
+  gregorian: string;
+  jalali: string;
+} | null {
+  if (!str) return null;
+  const cleaned = toLatinDigits(str.trim());
+
+  let y = 0;
+  let m = 0;
+  let d = 0;
+
+  // Pattern 1: YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
+  const match1 = cleaned.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (match1) {
+    y = parseInt(match1[1], 10);
+    m = parseInt(match1[2], 10);
+    d = parseInt(match1[3], 10);
+  } else {
+    // Pattern 2: DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY
+    const match2 = cleaned.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+    if (match2) {
+      d = parseInt(match2[1], 10);
+      m = parseInt(match2[2], 10);
+      y = parseInt(match2[3], 10);
+    } else {
+      // Pattern 3: YYYYMMDD (8 digits continuous)
+      const match3 = cleaned.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if (match3) {
+        y = parseInt(match3[1], 10);
+        m = parseInt(match3[2], 10);
+        d = parseInt(match3[3], 10);
+      } else {
+        return null;
+      }
+    }
+  }
+
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+
+  // If year < 1500, assume Jalali
+  const isJalali = y < 1500;
+  if (isJalali) {
+    const greg = jalaaliToGregorian(y, m, d);
+    if (!greg) return null;
+    return {
+      isJalali: true,
+      year: y,
+      month: m,
+      day: d,
+      jalali: `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}`,
+      gregorian: `${greg.year}-${String(greg.month).padStart(2, '0')}-${String(greg.day).padStart(2, '0')}`,
+    };
+  } else {
+    const jal = gregorianToJalaali(y, m, d);
+    if (!jal) return null;
+    return {
+      isJalali: false,
+      year: y,
+      month: m,
+      day: d,
+      gregorian: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+      jalali: `${jal.year}/${String(jal.month).padStart(2, '0')}/${String(jal.day).padStart(2, '0')}`,
+    };
+  }
+}

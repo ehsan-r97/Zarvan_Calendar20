@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_company_form_inherit_jalaali" model="ir.ui.view">
+        <field name="name">res.company.form.inherit.jalaali</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Persian Calendar" name="jalaali_calendar">
+                    <group>
+                        <group string="Weekend Settings">
+                            <field name="jalali_weekend_type"/>
+                            <field name="jalali_weekend_custom"
+                                   invisible="jalali_weekend_type != 'custom'"
+                                   placeholder="e.g. 5,6 for Thu and Fri"/>
+                        </group>
+                        <group string="Fiscal Calendar">
+                            <field name="fiscal_year_start_month"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

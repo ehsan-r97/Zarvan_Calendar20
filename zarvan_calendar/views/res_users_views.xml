@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_inherit_jalaali" model="ir.ui.view">
+        <field name="name">res.users.form.inherit.jalaali</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Persian Calendar Preferences" name="persian_preferences">
+                    <group>
+                        <group string="Display Mode">
+                            <field name="jalali_calendar_mode" widget="radio"/>
+                            <field name="jalali_date_format"/>
+                        </group>
+                        <group string="Localization &amp; Digits">
+                            <field name="jalali_use_persian_numbers"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- User Self-Service Profile Preferences View (My Profile) -->
+    <record id="view_users_form_simple_modif_inherit_jalaali" model="ir.ui.view">
+        <field name="name">res.users.preferences_form.inherit.jalaali</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form_simple_modif"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='preferences']" position="after">
+                <group string="Persian Calendar Preferences" name="persian_preferences">
+                    <field name="jalali_calendar_mode" widget="radio"/>
+                    <field name="jalali_date_format"/>
+                    <field name="jalali_use_persian_numbers"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

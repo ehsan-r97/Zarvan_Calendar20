@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Fixed Solar Hijri Holidays (Apply Every Year) -->
+        <record id="holiday_nowruz_1" model="jalaali.holiday">
+            <field name="name">آغاز سال نو (عید نوروز)</field>
+            <field name="jalali_month">1</field>
+            <field name="jalali_day">1</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_nowruz_2" model="jalaali.holiday">
+            <field name="name">عید نوروز (روز دوم)</field>
+            <field name="jalali_month">1</field>
+            <field name="jalali_day">2</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_nowruz_3" model="jalaali.holiday">
+            <field name="name">عید نوروز (روز سوم)</field>
+            <field name="jalali_month">1</field>
+            <field name="jalali_day">3</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_nowruz_4" model="jalaali.holiday">
+            <field name="name">عید نوروز (روز چهارم)</field>
+            <field name="jalali_month">1</field>
+            <field name="jalali_day">4</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_islamic_republic" model="jalaali.holiday">
+            <field name="name">روز جمهوری اسلامی ایران (۱۲ فروردین)</field>
+            <field name="jalali_month">1</field>
+            <field name="jalali_day">12</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_sizdah_bedar" model="jalaali.holiday">
+            <field name="name">سیزده‌به‌در (روز طبیعت)</field>
+            <field name="jalali_month">1</field>
+            <field name="jalali_day">13</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_khomeini_death" model="jalaali.holiday">
+            <field name="name">رحلت امام خمینی (ره)</field>
+            <field name="jalali_month">3</field>
+            <field name="jalali_day">14</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_khordad_15" model="jalaali.holiday">
+            <field name="name">قیام خونین ۱۵ خرداد</field>
+            <field name="jalali_month">3</field>
+            <field name="jalali_day">15</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_revolution" model="jalaali.holiday">
+            <field name="name">پیروزی انقلاب اسلامی (۲۲ بهمن)</field>
+            <field name="jalali_month">11</field>
+            <field name="jalali_day">22</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_oil_national" model="jalaali.holiday">
+            <field name="name">روز ملی شدن صنعت نفت (۲۹ اسفند)</field>
+            <field name="jalali_month">12</field>
+            <field name="jalali_day">29</field>
+            <field name="holiday_type">fixed</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Lunar Holidays for 1405 -->
+        <record id="holiday_1405_tasua" model="jalaali.holiday">
+            <field name="name">تاسوعای حسینی (۱۴۰۵)</field>
+            <field name="jalali_year">1405</field>
+            <field name="jalali_month">6</field>
+            <field name="jalali_day">6</field>
+            <field name="holiday_type">lunar</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_1405_ashura" model="jalaali.holiday">
+            <field name="name">عاشورای حسینی (۱۴۰۵)</field>
+            <field name="jalali_year">1405</field>
+            <field name="jalali_month">6</field>
+            <field name="jalali_day">7</field>
+            <field name="holiday_type">lunar</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="holiday_1405_arbaeen" model="jalaali.holiday">
+            <field name="name">اربعین حسینی (۱۴۰۵)</field>
+            <field name="jalali_year">1405</field>
+            <field name="jalali_month">6</field>
+            <field name="jalali_day">27</field>
+            <field name="holiday_type">lunar</field>
+            <field name="is_national">True</field>
+            <field name="active">True</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="zarvan_calendar.JalaliDatePicker">
+        <div class="o_jalali_date_picker position-relative d-inline-block w-100" style="direction: rtl;">
+            <div class="input-group">
+                <input type="text"
+                       class="form-control o_input text-start"
+                       t-att-value="state.persianDisplay"
+                       t-att-readonly="props.readonly ? 'readonly' : undefined"
+                       t-on-change="onInputChange"
+                       t-on-keydown="onInputKeydown"
+                       placeholder="YYYY/MM/DD (مثال: ۱۴۰۵/۰۱/۱۵)"/>
+                <button class="btn btn-outline-secondary" type="button" t-on-click="togglePicker" t-att-disabled="props.readonly">
+                    <i class="fa fa-calendar text-primary"/>
+                </button>
+            </div>
+
+            <t t-if="state.isOpen">
+                <!-- Mobile Backdrop Overlay for Odoo 20 Mobile Drawer -->
+                <t t-if="isMobile">
+                    <div class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"
+                         style="z-index: 1040;"
+                         t-on-click="closePicker"/>
+                </t>
+
+                <!-- Responsive Container: Native Bottom-Sheet on Mobile, Popover on Desktop -->
+                <div t-att-class="isMobile ? 'position-fixed bottom-0 start-0 end-0 bg-white shadow-lg p-3 rounded-top-4' : 'o_jalali_picker_dropdown position-absolute bg-white shadow-lg border rounded p-3 mt-1'"
+                     t-att-style="isMobile ? 'z-index: 1050; direction: rtl; max-height: 85vh; overflow-y: auto;' : 'width: 300px; z-index: 1050; direction: rtl; right: 0;'">
+                    
+                    <!-- Mobile Drag Handle -->
+                    <t t-if="isMobile">
+                        <div class="d-flex justify-content-center pb-2">
+                            <div class="bg-secondary bg-opacity-25 rounded-pill" style="width: 44px; height: 5px;"/>
+                        </div>
+                    </t>
+
+                    <!-- Month & Year Jump Navigation -->
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom gap-1">
+                        <button class="btn btn-sm btn-light p-1" type="button" t-on-click="nextMonth" title="ماه بعد">
+                            <i class="fa fa-chevron-right"/>
+                        </button>
+                        
+                        <div class="d-flex gap-1 flex-grow-1 justify-content-center">
+                            <select class="form-select form-select-sm py-0 px-1 text-center border-0 fw-bold bg-light"
+                                    t-att-value="state.currentMonth"
+                                    t-on-change="onMonthSelect"
+                                    style="width: 100px; cursor: pointer;">
+                                <t t-foreach="monthNames" t-as="mName" t-key="mName_index">
+                                    <option t-att-value="mName_index + 1" t-att-selected="state.currentMonth === mName_index + 1">
+                                        <t t-out="mName"/>
+                                    </option>
+                                </t>
+                            </select>
+
+                            <select class="form-select form-select-sm py-0 px-1 text-center border-0 fw-bold bg-light"
+                                    t-att-value="state.currentYear"
+                                    t-on-change="onYearSelect"
+                                    style="width: 80px; cursor: pointer;">
+                                <t t-foreach="yearOptions" t-as="yr" t-key="yr">
+                                    <option t-att-value="yr" t-att-selected="state.currentYear === yr">
+                                        <t t-out="yr"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-sm btn-light p-1" type="button" t-on-click="prevMonth" title="ماه قبل">
+                            <i class="fa fa-chevron-left"/>
+                        </button>
+                    </div>
+
+                    <!-- Weekdays header (Saturday to Friday) -->
+                    <div class="d-grid text-center mb-2 text-muted small fw-bold" style="grid-template-columns: repeat(7, 1fr);">
+                        <t t-foreach="weekdays" t-as="w" t-key="w">
+                            <span t-att-class="w === 'ج' ? 'text-danger' : ''" t-out="w"/>
+                        </t>
+                    </div>
+
+                    <!-- Days matrix with touch-friendly dimensions on mobile -->
+                    <div class="d-grid text-center gap-1 mb-2" style="grid-template-columns: repeat(7, 1fr);">
+                        <t t-foreach="calendarDays" t-as="d" t-key="d_index">
+                            <t t-if="d.empty">
+                                <span class="p-1"/>
+                            </t>
+                            <t t-else="">
+                                <button type="button"
+                                        class="btn btn-sm p-1 rounded-circle d-inline-flex align-items-center justify-content-center mx-auto"
+                                        t-att-style="isMobile ? 'width: 42px; height: 42px; font-size: 15px;' : 'width: 32px; height: 32px; font-size: 13px;'"
+                                        t-att-class="d.isSelected ? 'btn-primary text-white fw-bold shadow-sm' : (d.isToday ? 'btn-outline-primary fw-bold' : (d.isFriday ? 'btn-light text-danger fw-bold' : 'btn-light text-dark'))"
+                                        t-on-click="() => this.selectDay(d.day)">
+                                    <t t-out="d.displayDay"/>
+                                </button>
+                            </t>
+                        </t>
+                    </div>
+
+                    <!-- Quick Action Footer: Today, Clear, and Mobile Close -->
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary py-1 px-3 small" t-on-click="selectToday">
+                                <i class="fa fa-calendar-check-o me-1"/> امروز
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-3 small" t-on-click="clearDate">
+                                <i class="fa fa-eraser me-1"/> پاک کردن
+                            </button>
+                        </div>
+                        <t t-if="isMobile">
+                            <button type="button" class="btn btn-sm btn-light border py-1 px-3 small" t-on-click="closePicker">
+                                بستن
+                            </button>
+                        </t>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

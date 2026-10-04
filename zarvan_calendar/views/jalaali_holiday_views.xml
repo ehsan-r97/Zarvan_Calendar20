@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List / Tree View -->
+    <record id="view_jalaali_holiday_tree" model="ir.ui.view">
+        <field name="name">jalaali.holiday.list</field>
+        <field name="model">jalaali.holiday</field>
+        <field name="arch" type="xml">
+            <list string="Jalali Holidays" decoration-muted="not active" decoration-danger="is_national">
+                <field name="name"/>
+                <field name="jalali_year"/>
+                <field name="jalali_month"/>
+                <field name="jalali_day"/>
+                <field name="holiday_type" widget="badge"/>
+                <field name="is_national"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_jalaali_holiday_form" model="ir.ui.view">
+        <field name="name">jalaali.holiday.form</field>
+        <field name="model">jalaali.holiday</field>
+        <field name="arch" type="xml">
+            <form string="Jalali Holiday">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="e.g. Nowruz"/></h1>
+                    </div>
+                    <group>
+                        <group string="Date Information">
+                            <field name="jalali_year" placeholder="Leave empty for every year"/>
+                            <field name="jalali_month"/>
+                            <field name="jalali_day"/>
+                        </group>
+                        <group string="Classification">
+                            <field name="holiday_type"/>
+                            <field name="is_national"/>
+                            <field name="active" widget="boolean_toggle"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description">
+                            <field name="description" placeholder="Historical notes or decrees..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_jalaali_holiday_search" model="ir.ui.view">
+        <field name="name">jalaali.holiday.search</field>
+        <field name="model">jalaali.holiday</field>
+        <field name="arch" type="xml">
+            <search string="Search Holidays">
+                <field name="name"/>
+                <field name="jalali_year"/>
+                <field name="jalali_month"/>
+                <filter string="National" name="national" domain="[('is_national', '=', True)]"/>
+                <filter string="Fixed Date" name="fixed" domain="[('holiday_type', '=', 'fixed')]"/>
+                <filter string="Lunar" name="lunar" domain="[('holiday_type', '=', 'lunar')]"/>
+                <separator/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Month" name="group_month" context="{'group_by': 'jalali_month'}"/>
+                    <filter string="Year" name="group_year" context="{'group_by': 'jalali_year'}"/>
+                    <filter string="Type" name="group_type" context="{'group_by': 'holiday_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_jalaali_holiday" model="ir.actions.act_window">
+        <field name="name">Jalali Holidays</field>
+        <field name="res_model">jalaali.holiday</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_jalaali_holiday_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Define and manage official Iranian national and lunar holidays.
+            </p>
+        </field>
+    </record>
+</odoo>

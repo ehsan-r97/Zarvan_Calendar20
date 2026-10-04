@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top Level Menu -->
+    <menuitem id="menu_jalaali_root"
+              name="Persian Calendar"
+              sequence="75"
+              web_icon="zarvan_calendar,static/description/icon.png"/>
+
+    <!-- Submenus -->
+    <menuitem id="menu_jalaali_holidays"
+              name="Holidays"
+              parent="menu_jalaali_root"
+              action="action_jalaali_holiday"
+              sequence="10"/>
+
+    <menuitem id="menu_jalaali_import"
+              name="Import Holidays"
+              parent="menu_jalaali_root"
+              action="action_jalaali_import_wizard"
+              groups="group_jalaali_manager"
+              sequence="20"/>
+</odoo>

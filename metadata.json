@@ -1,0 +1,8 @@
+{
+  "name": "Zarvan Persian Calendar",
+  "description": "Production Jalali (Persian) calendar with comprehensive holiday management, bidirectional Gregorian conversion, multi-company weekend settings, and RESTful API.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

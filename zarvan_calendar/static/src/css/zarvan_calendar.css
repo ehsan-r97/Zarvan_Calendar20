@@ -1,0 +1,12 @@
+/* Zarvan Persian Calendar styles for Odoo 19 Backend */
+.o_jalali_date_picker {
+    position: relative;
+    width: 100%;
+}
+
+.o_jalali_picker_dropdown {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    background: #ffffff;
+    z-index: 1050;
+    border-radius: 8px;
+}

@@ -1,0 +1,41 @@
+# Compiled Python files
+*.pyc
+__pycache__/
+
+# Dependencies
+venv/
+.venv/
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Build artifacts
+build/
+dist/
+target/
+
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# Temporary files
+*.tmp
+*.swp
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Cache directories
+.mypy_cache/
+.pytest_cache/
+.gradle/
+node_modules/
