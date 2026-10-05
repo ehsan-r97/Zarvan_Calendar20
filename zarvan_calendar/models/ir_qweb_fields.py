@@ -14,19 +14,9 @@ from .jalaali_mixin import _py_gregorian_to_jalali
 
 _logger = logging.getLogger(__name__)
 
-_QWEB_DATE_CACHE = {}
-_QWEB_DATETIME_CACHE = {}
-_MAX_QWEB_CACHE = 2000
 
-
-def _format_digits(text, use_persian):
-
-    if not use_persian:
-        return text
-    persian_digits = {'0': '۰', '1': '۱', '2': '۲', '3': '۳', '4': '۴',
-                      '5': '۵', '6': '۶', '7': '۷', '8': '۸', '9': '۹'}
-    for en, fa in persian_digits.items():
-        text = text.replace(en, fa)
+def _format_digits(text, _use_persian=False):
+    """Always return clean English digits (0-9) for standard Odoo reporting."""
     return text
 
 
@@ -44,8 +34,8 @@ class IrQWebFieldDate(models.AbstractModel):
             lang = self.env.context.get('lang') or user.lang or ''
             mode = getattr(user, 'jalali_calendar_mode', 'shamsi') or 'shamsi'
 
-            # If user wants Gregorian only or report language is foreign (e.g. English customer invoice)
-            if mode == 'gregorian' or not lang.startswith('fa'):
+            # If user wants Gregorian only, use native Odoo formatter
+            if mode == 'gregorian' or (not lang.startswith('fa') and not user.jalali_date_format):
                 return super().value_to_html(value, options)
 
             g_date = None
@@ -66,11 +56,6 @@ class IrQWebFieldDate(models.AbstractModel):
                 g_date = fields.Date.to_date(value)
 
             if g_date:
-                cache_key = (g_date.year, g_date.month, g_date.day, user.jalali_date_format, user.jalali_use_persian_numbers, mode)
-                cached = _QWEB_DATE_CACHE.get(cache_key)
-                if cached is not None:
-                    return cached
-
                 jy, jm, jd = _py_gregorian_to_jalali(g_date.year, g_date.month, g_date.day)
                 fmt = user.jalali_date_format or 'YYYY/MM/DD'
                 y_str = str(jy)
@@ -82,14 +67,8 @@ class IrQWebFieldDate(models.AbstractModel):
 
                 if mode == 'both':
                     g_iso = g_date.strftime('%Y-%m-%d')
-                    result = f"{j_str} ({g_iso})"
-                else:
-                    result = j_str
-
-                if len(_QWEB_DATE_CACHE) < _MAX_QWEB_CACHE:
-                    _QWEB_DATE_CACHE[cache_key] = result
-                return result
-
+                    return f"{j_str} ({g_iso})"
+                return j_str
 
         except Exception as e:
             _logger.warning("Jalali QWeb date format error, falling back to standard: %s", str(e))
@@ -111,7 +90,7 @@ class IrQWebFieldDateTime(models.AbstractModel):
             lang = self.env.context.get('lang') or user.lang or ''
             mode = getattr(user, 'jalali_calendar_mode', 'shamsi') or 'shamsi'
 
-            if mode == 'gregorian' or not lang.startswith('fa'):
+            if mode == 'gregorian' or (not lang.startswith('fa') and not user.jalali_date_format):
                 return super().value_to_html(value, options)
 
             # Convert UTC to user's localized timezone
@@ -119,11 +98,6 @@ class IrQWebFieldDateTime(models.AbstractModel):
             localized_dt = fields.Datetime.context_timestamp(self, raw_dt)
 
             if localized_dt:
-                cache_key = (localized_dt.year, localized_dt.month, localized_dt.day, localized_dt.hour, localized_dt.minute, user.jalali_date_format, user.jalali_use_persian_numbers, mode)
-                cached = _QWEB_DATETIME_CACHE.get(cache_key)
-                if cached is not None:
-                    return cached
-
                 jy, jm, jd = _py_gregorian_to_jalali(localized_dt.year, localized_dt.month, localized_dt.day)
                 fmt = user.jalali_date_format or 'YYYY/MM/DD'
                 y_str = str(jy)
@@ -137,14 +111,8 @@ class IrQWebFieldDateTime(models.AbstractModel):
 
                 if mode == 'both':
                     g_iso = localized_dt.strftime('%Y-%m-%d %H:%M')
-                    result = f"{j_str} ({g_iso})"
-                else:
-                    result = j_str
-
-                if len(_QWEB_DATETIME_CACHE) < _MAX_QWEB_CACHE:
-                    _QWEB_DATETIME_CACHE[cache_key] = result
-                return result
-
+                    return f"{j_str} ({g_iso})"
+                return j_str
 
         except Exception as e:
             _logger.warning("Jalali QWeb datetime format error, falling back to standard: %s", str(e))

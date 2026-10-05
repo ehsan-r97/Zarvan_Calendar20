@@ -22,25 +22,14 @@
 // Defensive check: If o-spreadsheet is installed in this Odoo instance, register functions
 try {
     let functionRegistry = null;
-    let helpers = null;
 
-    // Check Odoo 18/19/20 ES Module loader first
-    if (typeof odoo !== "undefined" && odoo.loader && odoo.loader.modules) {
-        const mod = odoo.loader.modules.get("@odoo/o-spreadsheet") || odoo.loader.modules.get("@spreadsheet/o_spreadsheet/o_spreadsheet");
-        if (mod) {
-            functionRegistry = mod.functionRegistry || (mod.default && mod.default.functionRegistry);
-            helpers = mod.helpers || (mod.default && mod.default.helpers);
-        }
-    }
-
-    // Fallback to window global if present
-    if (!functionRegistry && window.o_spreadsheet) {
+    // Check modern o-spreadsheet bundle
+    if (window.o_spreadsheet && window.o_spreadsheet.functionRegistry) {
         functionRegistry = window.o_spreadsheet.functionRegistry;
-        helpers = window.o_spreadsheet.helpers;
     }
 
     if (functionRegistry) {
-        const { toBoolean, toNumber, toString } = helpers || {};
+        const { toBoolean, toNumber, toString } = window.o_spreadsheet.helpers || {};
 
         // Helper to convert JS Date / Excel serial to Gregorian Y, M, D
         const serialToGregorian = (serial) => {
@@ -84,27 +73,14 @@ try {
                 const res = window.__zarvan.jalaliToGregorian(jy, jm, jd);
                 return res ? { gy: res.year, gm: res.month, gd: res.day } : null;
             }
-            const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
-            let bl = breaks.length, jp = breaks[0], jm_break, jump, leap, n, i, march;
-            if (jy < jp || jy >= breaks[bl - 1]) return null;
-            for (i = 1; i < bl; i += 1) {
-                jm_break = breaks[i];
-                jump = jm_break - jp;
-                if (jy < jm_break) break;
-                jp = jm_break;
-            }
-            n = jy - jp;
-            if (jump - n < 6) n = n - jump + ((jump + 4) >> 2) * 4;
-            leap = (((n + 1) % 33) - 1) % 4;
-            if (leap === -1) leap = 4;
-            const gy = jy + 621;
-            march = 20 + ((jump - n < 6 ? 1 : 0) + (leap === 0 ? 1 : 0));
-            const days = (jm <= 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186) + jd - 1;
-            let g_day_no = days + march;
-            const g_days_in_month = [31, (gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0 ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            let gy = jy + 621;
+            let days = (jm <= 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186) + jd - 1;
+            let g_day_no = days + 20;
+            const leap = (gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0;
+            const g_days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
             let gm = 3;
-            while (g_day_no > g_days_in_month[gm - 1]) {
-                g_day_no -= g_days_in_month[gm - 1];
+            while (g_day_no > g_days[gm - 1]) {
+                g_day_no -= g_days[gm - 1];
                 gm++;
                 if (gm > 12) { gm = 1; break; }
             }
@@ -183,10 +159,6 @@ try {
             returns: ["STRING"],
         });
 
-        const isLeapJalali = (jy) => {
-            return [1, 5, 9, 13, 17, 22, 26, 30].includes(jy % 33);
-        };
-
         // 6. =JEDATE(date, months) - Adds N Persian months
         functionRegistry.add("JEDATE", {
             description: "Returns the serial date that is the indicated number of Shamsi months before or after a date.",
@@ -202,8 +174,9 @@ try {
                 const targetJy = Math.floor(totalMonths / 12);
                 const targetJm = (totalMonths % 12) + 1;
 
-                // Adjust for month length: 31 days in months 1-6, 30 in 7-11, 29/30 in 12 (leap-aware)
-                const maxDays = targetJm <= 6 ? 31 : targetJm <= 11 ? 30 : (isLeapJalali(targetJy) ? 30 : 29);
+                // Adjust for month length: 31 days in months 1-6, 30 in 7-11, 29/30 in 12 (leap year)
+                const isLeap = [1, 5, 9, 13, 17, 22, 26, 30].includes(targetJy % 33);
+                const maxDays = targetJm <= 6 ? 31 : targetJm <= 11 ? 30 : (isLeap ? 30 : 29);
                 const targetJd = Math.min(jd, maxDays);
 
                 const newG = j2g(targetJy, targetJm, targetJd);
@@ -228,7 +201,8 @@ try {
                 const targetJy = Math.floor(totalMonths / 12);
                 const targetJm = (totalMonths % 12) + 1;
 
-                const maxDays = targetJm <= 6 ? 31 : targetJm <= 11 ? 30 : (isLeapJalali(targetJy) ? 30 : 29);
+                const isLeap = [1, 5, 9, 13, 17, 22, 26, 30].includes(targetJy % 33);
+                const maxDays = targetJm <= 6 ? 31 : targetJm <= 11 ? 30 : (isLeap ? 30 : 29);
                 const newG = j2g(targetJy, targetJm, maxDays);
                 if (!newG) return Number(serial);
                 return gregorianToSerial(newG.gy, newG.gm, newG.gd);

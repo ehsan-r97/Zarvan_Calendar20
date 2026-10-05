@@ -10,6 +10,7 @@ import { ApiExplorer } from './components/ApiExplorer';
 import { SettingsModal } from './components/SettingsModal';
 import { OdooVersionAudit } from './components/OdooVersionAudit';
 import { OdooLiveSimulator } from './components/OdooLiveSimulator';
+import { OdooTestLab } from './components/OdooTestLab';
 import { ZarvanLogo } from './components/ZarvanLogo';
 
 import {
@@ -20,7 +21,7 @@ import {
   CompanySetting,
   UserPreferences,
 } from './data/holidays';
-import { getCurrentJalaaliDate, toPersianDigits, PERSIAN_MONTHS } from './lib/jalaali';
+import { getCurrentJalaaliDate, PERSIAN_MONTHS } from './lib/jalaali';
 import {
   Calendar as CalendarIcon,
   ArrowLeftRight,
@@ -33,12 +34,11 @@ import {
   CalendarCheck2,
   Cpu,
   Sparkles,
-  Sun,
 } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<
-    'calendar' | 'converter' | 'picker' | 'working_days' | 'holidays' | 'simulator' | 'api' | 'settings' | 'audit'
+    'calendar' | 'testlab' | 'converter' | 'picker' | 'working_days' | 'holidays' | 'simulator' | 'api' | 'settings' | 'audit'
   >('calendar');
 
   const [currentDate, setCurrentDate] = useState(getCurrentJalaaliDate());
@@ -171,7 +171,7 @@ export function App() {
   };
 
   const formatNum = (num: number | string) => {
-    return preferences.use_persian_numbers ? toPersianDigits(num) : num;
+    return num;
   };
 
   return (
@@ -254,6 +254,21 @@ export function App() {
               </button>
 
               <button
+                onClick={() => setActiveTab('testlab')}
+                className={`px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === 'testlab'
+                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                    : 'bg-emerald-50 text-emerald-950 hover:bg-emerald-100 font-semibold border border-emerald-200'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>آزمایشگاه تست‌های Odoo (29 تست استاندارد)</span>
+                <span className="px-1.5 py-0.2 text-[9px] bg-emerald-600 text-white rounded font-mono">
+                  Test Lab
+                </span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('simulator')}
                 className={`px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'simulator'
@@ -286,7 +301,7 @@ export function App() {
                 }`}
               >
                 <Layers className="w-4 h-4 text-amber-600" />
-                <span>ویجت انتخاب تاریخ (OWL Widget)</span>
+                <span>ویجت انتخاب تاریخ (OWL 3)</span>
               </button>
 
               <button
@@ -348,7 +363,7 @@ export function App() {
                 <Cpu className="w-4 h-4 text-purple-600" />
                 <span>نسخه Odoo و ممیزی باگ‌ها</span>
                 <span className="px-1.5 py-0.2 text-[9px] bg-purple-700 text-white rounded font-mono">
-                  v19
+                  Odoo 20
                 </span>
               </button>
             </nav>
@@ -378,7 +393,7 @@ export function App() {
                 </span>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
-                    ویجت تعاملی فیلد تاریخ جلالی (OWL 2.0 Component)
+                    ویجت تعاملی فیلد تاریخ جلالی (OWL 3 Component)
                   </h2>
                   <p className="text-xs text-slate-500">
                     پیاده‌سازی ماژول زروان با تبدیل ۱۰۰٪ سمت کلاینت (بدون نیاز به RPC سرور) و پشتیبانی از standardFieldProps
@@ -425,6 +440,8 @@ export function App() {
           </div>
         )}
 
+        {activeTab === 'testlab' && <OdooTestLab />}
+
         {activeTab === 'simulator' && (
           <OdooLiveSimulator
             calendarMode={preferences.calendar_mode || 'shamsi'}
@@ -470,7 +487,7 @@ export function App() {
       <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
           <span>
-            ماژول تقویم زروان (Zarvan Persian Calendar) • نسخه 19.0.1.0.0
+            ماژول تقویم زروان (Zarvan Persian Calendar) • نسخه 20.0.1.0.0 (سازگار با Odoo 20 و 19)
           </span>
           <span className="font-mono text-[11px] text-slate-400">
             توسعه‌یافته بر اساس ساختار Odoo توسط احسان رضایی (ehsan.r97@gmail.com)

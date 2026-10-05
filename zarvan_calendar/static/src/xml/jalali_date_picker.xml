@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="zarvan_calendar.JalaliDatePicker">
-        <div class="o_jalali_date_picker position-relative d-inline-block w-100" style="direction: rtl;" t-ref="root">
+        <div class="o_jalali_date_picker position-relative d-inline-block w-100" style="direction: rtl;">
             <div class="input-group">
                 <input type="text"
                        class="form-control o_input text-start"
+                       style="direction: ltr; text-align: start;"
                        t-att-value="state.persianDisplay"
                        t-att-readonly="props.readonly ? 'readonly' : undefined"
                        t-on-change="onInputChange"
                        t-on-keydown="onInputKeydown"
-                       placeholder="YYYY/MM/DD (مثال: ۱۴۰۵/۰۱/۱۵)"/>
+                       placeholder="YYYY/MM/DD (مثال: 1405/01/15)"/>
                 <button class="btn btn-outline-secondary" type="button" t-on-click="togglePicker" t-att-disabled="props.readonly">
                     <i class="fa fa-calendar text-primary"/>
                 </button>
@@ -45,7 +46,7 @@
                                     t-att-value="state.currentMonth"
                                     t-on-change="onMonthSelect"
                                     style="width: 100px; cursor: pointer;">
-                                <t t-foreach="monthNames" t-as="mName" t-key="mName_index">
+                                <t t-foreach="monthNames" t-as="mName" t-key="mName">
                                     <option t-att-value="mName_index + 1" t-att-selected="state.currentMonth === mName_index + 1">
                                         <t t-out="mName"/>
                                     </option>

@@ -51,11 +51,175 @@ function isCompanyWeekend(company: CompanySetting, weekdayIndex: number): boolea
   return false;
 }
 
+// Helper for Gregorian -> Jalali conversion
+function processGregorianToJalali(req: Request, res: Response) {
+  try {
+    let y = parseInt(String(req.body?.year || req.query?.year || ''), 10);
+    let m = parseInt(String(req.body?.month || req.query?.month || ''), 10);
+    let d = parseInt(String(req.body?.day || req.query?.day || ''), 10);
+
+    const dateStr = String(req.body?.date || req.query?.date || '').trim();
+    if ((!y || !m || !d) && dateStr) {
+      const parsed = parseDateString(dateStr);
+      if (parsed) {
+        if (!parsed.isJalali) {
+          y = parsed.year;
+          m = parsed.month;
+          d = parsed.day;
+        } else {
+          return res.json({
+            success: true,
+            data: {
+              gregorian: parsed.gregorian,
+              jalali: parsed.jalali,
+              details: { jalaliYear: parsed.year, jalaliMonth: parsed.month, jalaliDay: parsed.day },
+            },
+          });
+        }
+      }
+    }
+
+    if (!y || !m || !d || isNaN(y) || isNaN(m) || isNaN(d)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing or invalid parameters: supply year, month, day or date string (e.g. 2026-03-21)',
+      });
+    }
+
+    const jal = gregorianToJalaali(y, m, d);
+    if (!jal) {
+      return res.status(400).json({ success: false, error: 'Invalid Gregorian date' });
+    }
+
+    const gStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const jStr = `${jal.year}/${String(jal.month).padStart(2, '0')}/${String(jal.day).padStart(2, '0')}`;
+
+    return res.json({
+      success: true,
+      data: {
+        gregorian: gStr,
+        jalali: jStr,
+        details: {
+          jalaliYear: jal.year,
+          jalaliMonth: jal.month,
+          jalaliDay: jal.day,
+        },
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+}
+
+// Helper for Jalali -> Gregorian conversion
+function processJalaliToGregorian(req: Request, res: Response) {
+  try {
+    let y = parseInt(String(req.body?.year || req.query?.year || ''), 10);
+    let m = parseInt(String(req.body?.month || req.query?.month || ''), 10);
+    let d = parseInt(String(req.body?.day || req.query?.day || ''), 10);
+
+    const dateStr = String(req.body?.date || req.query?.date || '').trim();
+    if ((!y || !m || !d) && dateStr) {
+      const parsed = parseDateString(dateStr);
+      if (parsed) {
+        if (parsed.isJalali) {
+          y = parsed.year;
+          m = parsed.month;
+          d = parsed.day;
+        } else {
+          return res.json({
+            success: true,
+            data: {
+              jalali: parsed.jalali,
+              gregorian: parsed.gregorian,
+              details: {
+                gregorianYear: parsed.year,
+                gregorianMonth: parsed.month,
+                gregorianDay: parsed.day,
+              },
+            },
+          });
+        }
+      }
+    }
+
+    if (!y || !m || !d || isNaN(y) || isNaN(m) || isNaN(d)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing or invalid parameters: supply year, month, day or date string (e.g. 1405/01/01)',
+      });
+    }
+
+    const greg = jalaaliToGregorian(y, m, d);
+    if (!greg) {
+      return res.status(400).json({ success: false, error: 'Invalid Jalali date' });
+    }
+
+    const jStr = `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
+    const gStr = `${greg.year}-${String(greg.month).padStart(2, '0')}-${String(greg.day).padStart(2, '0')}`;
+
+    return res.json({
+      success: true,
+      data: {
+        jalali: jStr,
+        gregorian: gStr,
+        details: {
+          gregorianYear: greg.year,
+          gregorianMonth: greg.month,
+          gregorianDay: greg.day,
+        },
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+}
+
 // -------------------------------------------------------------
-// REST API Endpoints (as defined in Zarvan Calendar Odoo spec)
+// REST API Endpoints (as defined in Zarvan Calendar Odoo spec & README)
 // -------------------------------------------------------------
 
-// 1. GET /api/jalaali/holidays/:year
+// 1. GET /api/jalaali/holidays and /api/jalaali/holidays/:year
+app.get('/api/jalaali/holidays', (req: Request, res: Response) => {
+  try {
+    const yearParam = req.query.year ? parseInt(String(req.query.year), 10) : null;
+    const companyId = req.query.company_id ? parseInt(String(req.query.company_id), 10) : null;
+
+    if (yearParam !== null && isNaN(yearParam)) {
+      return res.status(400).json({ success: false, error: 'Invalid year parameter' });
+    }
+
+    const filtered = holidays.filter((h) => {
+      if (!h.is_active) return false;
+      if (companyId && h.company_id && h.company_id !== companyId) return false;
+      if (yearParam !== null) {
+        if (h.jalali_year === null) return true;
+        return h.jalali_year === yearParam;
+      }
+      return true;
+    }).map((h) => {
+      const activeYear = yearParam || h.jalali_year || 1405;
+      const gDate = jalaaliToGregorian(activeYear, h.jalali_month, h.jalali_day);
+      return {
+        ...h,
+        display_year: activeYear,
+        gregorian_date: gDate ? `${gDate.year}-${String(gDate.month).padStart(2, '0')}-${String(gDate.day).padStart(2, '0')}` : null,
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        year: yearParam,
+        holidays: filtered,
+        count: filtered.length,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 app.get('/api/jalaali/holidays/:year', (req: Request, res: Response) => {
   try {
     const year = parseInt(String(req.params.year), 10);
@@ -68,7 +232,6 @@ app.get('/api/jalaali/holidays/:year', (req: Request, res: Response) => {
     const yearHolidays = holidays.filter((h) => {
       if (!h.is_active) return false;
       if (companyId && h.company_id && h.company_id !== companyId) return false;
-      // Fixed holidays (jalali_year === null) apply every year
       if (h.jalali_year === null) return true;
       return h.jalali_year === year;
     }).map((h) => {
@@ -93,18 +256,22 @@ app.get('/api/jalaali/holidays/:year', (req: Request, res: Response) => {
   }
 });
 
-// 2. POST /api/jalaali/is-holiday
-app.post('/api/jalaali/is-holiday', (req: Request, res: Response) => {
+// 2. /api/jalaali/is-holiday (GET & POST)
+const handleIsHoliday = (req: Request, res: Response) => {
   try {
-    const { year, month, day, company_id } = req.body;
-    if (!year || !month || !day) {
+    const yearVal = req.body?.year || req.query?.year;
+    const monthVal = req.body?.month || req.query?.month;
+    const dayVal = req.body?.day || req.query?.day;
+    const companyVal = req.body?.company_id || req.query?.company_id;
+
+    if (!yearVal || !monthVal || !dayVal) {
       return res.status(400).json({ success: false, error: 'Missing required parameters: year, month, day' });
     }
 
-    const y = parseInt(year, 10);
-    const m = parseInt(month, 10);
-    const d = parseInt(day, 10);
-    const cId = company_id ? parseInt(company_id, 10) : null;
+    const y = parseInt(String(yearVal), 10);
+    const m = parseInt(String(monthVal), 10);
+    const d = parseInt(String(dayVal), 10);
+    const cId = companyVal ? parseInt(String(companyVal), 10) : null;
 
     const weekday = getJalaaliWeekday(y, m, d);
     const company = companies.find((c) => c.id === (cId || 1)) || companies[0];
@@ -135,107 +302,25 @@ app.post('/api/jalaali/is-holiday', (req: Request, res: Response) => {
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
-});
-
-// 3. POST /api/jalaali/convert/jalali-to-gregorian & GET/POST /api/jalaali/convert/j2g
-const handleJ2G = (req: Request, res: Response) => {
-  try {
-    const dateQuery = req.query.date as string || req.body.date as string;
-    let y: number, m: number, d: number;
-
-    if (dateQuery) {
-      const parts = dateQuery.replace(/-/g, '/').split('/');
-      y = parseInt(parts[0], 10);
-      m = parseInt(parts[1], 10);
-      d = parseInt(parts[2], 10);
-    } else {
-      y = parseInt(req.body.year || req.query.year, 10);
-      m = parseInt(req.body.month || req.query.month, 10);
-      d = parseInt(req.body.day || req.query.day, 10);
-    }
-
-    if (!y || !m || !d) {
-      return res.status(400).json({ success: false, error: 'Missing required parameters: year, month, day or date' });
-    }
-
-    const greg = jalaaliToGregorian(y, m, d);
-    if (!greg) {
-      return res.status(400).json({ success: false, error: 'Invalid Jalali date' });
-    }
-
-    const jStr = `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
-    const gStr = `${greg.year}-${String(greg.month).padStart(2, '0')}-${String(greg.day).padStart(2, '0')}`;
-
-    return res.json({
-      success: true,
-      data: {
-        jalali: jStr,
-        gregorian: gStr,
-        details: {
-          gregorianYear: greg.year,
-          gregorianMonth: greg.month,
-          gregorianDay: greg.day,
-        },
-      },
-    });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
-  }
 };
 
-app.post('/api/jalaali/convert/jalali-to-gregorian', handleJ2G);
-app.all('/api/jalaali/convert/j2g', handleJ2G);
+app.post('/api/jalaali/is-holiday', handleIsHoliday);
+app.get('/api/jalaali/is-holiday', handleIsHoliday);
 
-// 4. POST /api/jalaali/convert/gregorian-to-jalali & GET/POST /api/jalaali/convert/g2j
-const handleG2J = (req: Request, res: Response) => {
-  try {
-    const dateQuery = req.query.date as string || req.body.date as string;
-    let y: number, m: number, d: number;
+// 3. Bidirectional date conversion endpoints
+// /api/jalaali/convert/j2g & /api/jalaali/convert/jalali-to-gregorian (GET & POST)
+app.post('/api/jalaali/convert/jalali-to-gregorian', processJalaliToGregorian);
+app.get('/api/jalaali/convert/jalali-to-gregorian', processJalaliToGregorian);
+app.post('/api/jalaali/convert/j2g', processJalaliToGregorian);
+app.get('/api/jalaali/convert/j2g', processJalaliToGregorian);
 
-    if (dateQuery) {
-      const parts = dateQuery.replace(/\//g, '-').split('-');
-      y = parseInt(parts[0], 10);
-      m = parseInt(parts[1], 10);
-      d = parseInt(parts[2], 10);
-    } else {
-      y = parseInt(req.body.year || req.query.year, 10);
-      m = parseInt(req.body.month || req.query.month, 10);
-      d = parseInt(req.body.day || req.query.day, 10);
-    }
+// /api/jalaali/convert/g2j & /api/jalaali/convert/gregorian-to-jalali (GET & POST)
+app.post('/api/jalaali/convert/gregorian-to-jalali', processGregorianToJalali);
+app.get('/api/jalaali/convert/gregorian-to-jalali', processGregorianToJalali);
+app.post('/api/jalaali/convert/g2j', processGregorianToJalali);
+app.get('/api/jalaali/convert/g2j', processGregorianToJalali);
 
-    if (!y || !m || !d) {
-      return res.status(400).json({ success: false, error: 'Missing required parameters: year, month, day or date' });
-    }
-
-    const jal = gregorianToJalaali(y, m, d);
-    if (!jal) {
-      return res.status(400).json({ success: false, error: 'Invalid Gregorian date' });
-    }
-
-    const gStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const jStr = `${jal.year}/${String(jal.month).padStart(2, '0')}/${String(jal.day).padStart(2, '0')}`;
-
-    return res.json({
-      success: true,
-      data: {
-        gregorian: gStr,
-        jalali: jStr,
-        details: {
-          jalaliYear: jal.year,
-          jalaliMonth: jal.month,
-          jalaliDay: jal.day,
-        },
-      },
-    });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
-  }
-};
-
-app.post('/api/jalaali/convert/gregorian-to-jalali', handleG2J);
-app.all('/api/jalaali/convert/g2j', handleG2J);
-
-// 5. GET /api/jalaali/current
+// 4. GET /api/jalaali/current
 app.get('/api/jalaali/current', (_req: Request, res: Response) => {
   try {
     const current = getCurrentJalaaliDate();
@@ -248,7 +333,87 @@ app.get('/api/jalaali/current', (_req: Request, res: Response) => {
   }
 });
 
-// 6. GET /api/jalaali/working-days/:year/:month
+// 5. Working Days calculation (supports both query params and URL path)
+function calculateWorkingDays(year: number, month: number, companyId: number) {
+  const company = companies.find((c) => c.id === companyId) || companies[0];
+  const totalDays = getDaysInJalaaliMonth(year, month);
+
+  const monthHolidays = holidays.filter((h) => {
+    if (!h.is_active) return false;
+    if (companyId && h.company_id && h.company_id !== companyId) return false;
+    const yearMatches = h.jalali_year === null || h.jalali_year === year;
+    return yearMatches && h.jalali_month === month;
+  });
+
+  const holidayDaysSet = new Set(monthHolidays.map((h) => h.jalali_day));
+
+  let workingDays = 0;
+  let weekendDays = 0;
+  let nonWeekendHolidays = 0;
+  const dailyBreakdown: any[] = [];
+
+  for (let day = 1; day <= totalDays; day++) {
+    const weekday = getJalaaliWeekday(year, month, day);
+    const isWeekend = isCompanyWeekend(company, weekday);
+    const isHoliday = holidayDaysSet.has(day);
+
+    if (isWeekend) {
+      weekendDays++;
+    } else if (isHoliday) {
+      nonWeekendHolidays++;
+    } else {
+      workingDays++;
+    }
+
+    const holidayDetail = monthHolidays.find((h) => h.jalali_day === day);
+    dailyBreakdown.push({
+      day,
+      weekday,
+      weekdayName: PERSIAN_WEEKDAYS[weekday].name,
+      isWeekend,
+      isHoliday,
+      holidayName: holidayDetail ? holidayDetail.name : null,
+      isWorkingDay: !isWeekend && !isHoliday,
+    });
+  }
+
+  return {
+    year,
+    month,
+    total_days: totalDays,
+    working_days: workingDays,
+    weekend_days: weekendDays,
+    holiday_days: nonWeekendHolidays,
+    total_off_days: weekendDays + nonWeekendHolidays,
+    company: {
+      id: company.id,
+      name: company.name,
+      weekend_type: company.jalali_weekend_type,
+    },
+    holidays_in_month: monthHolidays,
+    daily_breakdown: dailyBreakdown,
+  };
+}
+
+// GET /api/jalaali/working-days?year=1405&month=1&company_id=1
+app.get('/api/jalaali/working-days', (req: Request, res: Response) => {
+  try {
+    const year = parseInt(String(req.query.year || '1405'), 10);
+    const month = parseInt(String(req.query.month || '1'), 10);
+    const companyId = req.query.company_id ? parseInt(String(req.query.company_id), 10) : 1;
+
+    if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+      return res.status(400).json({ success: false, error: 'Invalid year or month' });
+    }
+
+    const result = calculateWorkingDays(year, month, companyId);
+    return res.json({ success: true, data: result });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+// GET /api/jalaali/working-days/:year/:month
 app.get('/api/jalaali/working-days/:year/:month', (req: Request, res: Response) => {
   try {
     const year = parseInt(String(req.params.year), 10);
@@ -259,67 +424,8 @@ app.get('/api/jalaali/working-days/:year/:month', (req: Request, res: Response) 
       return res.status(400).json({ success: false, error: 'Invalid year or month' });
     }
 
-    const company = companies.find((c) => c.id === companyId) || companies[0];
-    const totalDays = getDaysInJalaaliMonth(year, month);
-
-    const monthHolidays = holidays.filter((h) => {
-      if (!h.is_active) return false;
-      if (companyId && h.company_id && h.company_id !== companyId) return false;
-      const yearMatches = h.jalali_year === null || h.jalali_year === year;
-      return yearMatches && h.jalali_month === month;
-    });
-
-    const holidayDaysSet = new Set(monthHolidays.map((h) => h.jalali_day));
-
-    let workingDays = 0;
-    let weekendDays = 0;
-    let nonWeekendHolidays = 0;
-    const dailyBreakdown: any[] = [];
-
-    for (let day = 1; day <= totalDays; day++) {
-      const weekday = getJalaaliWeekday(year, month, day);
-      const isWeekend = isCompanyWeekend(company, weekday);
-      const isHoliday = holidayDaysSet.has(day);
-
-      if (isWeekend) {
-        weekendDays++;
-      } else if (isHoliday) {
-        nonWeekendHolidays++;
-      } else {
-        workingDays++;
-      }
-
-      const holidayDetail = monthHolidays.find((h) => h.jalali_day === day);
-      dailyBreakdown.push({
-        day,
-        weekday,
-        weekdayName: PERSIAN_WEEKDAYS[weekday].name,
-        isWeekend,
-        isHoliday,
-        holidayName: holidayDetail ? holidayDetail.name : null,
-        isWorkingDay: !isWeekend && !isHoliday,
-      });
-    }
-
-    return res.json({
-      success: true,
-      data: {
-        year,
-        month,
-        total_days: totalDays,
-        working_days: workingDays,
-        weekend_days: weekendDays,
-        holiday_days: nonWeekendHolidays,
-        total_off_days: weekendDays + nonWeekendHolidays,
-        company: {
-          id: company.id,
-          name: company.name,
-          weekend_type: company.jalali_weekend_type,
-        },
-        holidays_in_month: monthHolidays,
-        daily_breakdown: dailyBreakdown,
-      },
-    });
+    const result = calculateWorkingDays(year, month, companyId);
+    return res.json({ success: true, data: result });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }

@@ -5,65 +5,47 @@
     'name': 'Zarvan Persian Calendar',
     'version': '20.0.1.0.0',
     'category': 'Localization',
-    'summary': 'Enterprise Jalali Calendar, Zero-XML Universal UI & QWeb Reports, High-Speed Excel Import, and Spreadsheet Formulas for Odoo 20',
+    'summary': 'Enterprise Jalali Calendar, Global Zero-XML View & Report Conversion, Pivot/Graph Grouping, and Excel Import for Odoo 20',
     'description': """
-Zarvan Persian Calendar for Odoo 20 (Enterprise & Community Editions)
-=====================================================================
-A high-performance, enterprise-grade Jalali (Persian / Solar Hijri / هجری شمسی) localization engine natively designed for Odoo 20.0.
-
-Live Performance & Benchmark Highlights:
-----------------------------------------
-* Pure Python Gregorian ➔ Jalali: 1,789,960 ops/sec (100k conversions in 55.87 ms)
-* Pure Python Jalali ➔ Gregorian: 1,740,862 ops/sec (100k conversions in 57.44 ms)
-* Excel / CSV Batch Import Engine: 3,560,318 rows/sec (20k rows in 5.62 ms)
-* Zero External Dependencies: 100% Pure Python & Standard Library (no pip requirements)
-* 100% Native Gregorian UTC Database Storage & B-Tree Index Preservation
+Zarvan Persian Calendar for Odoo 20 (Enterprise Edition)
+=========================================================
+A high-performance, enterprise-grade Jalali (Persian / Solar Hijri) localization engine built natively for Odoo 20.0.
 
 Core Architectural Innovations:
 --------------------------------
 1. Universal Zero-XML UI Date Conversion:
    * Intercepts core web client formatters (@web/core/l10n/dates).
-   * Fast-path ASCII parsing (charCodeAt) and single-lookup Map cache bypass regex compilation.
    * Automatically displays Jalali dates across ALL List/Tree views, Forms, Kanban cards, and Activity widgets without modifying a single view XML file.
    * Immediately works on any future third-party or standard module installed.
 
 2. Universal PDF & HTML Report Conversion:
-   * Hooks into core QWeb report models (ir.qweb.field.date & ir.qweb.field.datetime).
+   * Hooks into core QWeb report models (ir.qweb.field.date & datetime).
    * Automatically prints Persian dates on Invoices, Quotations, Purchase Orders, Delivery Slips, and Payslips.
-   * Localizes UTC timestamps to the user's timezone before date extraction.
-   * Thread-safe memoization cache eliminates redundant string formatting in large 200+ page ledgers.
-   * Automatically falls back to Gregorian for foreign language partner reports (e.g. en_US).
 
 3. Pivot Table, Graph View, and Search Group-By:
-   * BaseModel._read_group_format_result hook formats grouped date intervals directly into Persian Month names (فروردین, اردیبهشت), Jalali Years (۱۴۰۵), Quarters (سه‌ماهه اول), and Weeks in financial and sales reporting.
+   * Formats grouped date intervals directly into Persian Month names (فروردین, اردیبهشت), Jalali Years (۱۴۰۵), Quarters, and Weeks in sales and financial reports.
 
 4. Search Query Rewriter (PostgreSQL Index Preservation):
-   * Recursively translates Shamsi date filters in search bars and domains to Gregorian UTC before hitting PostgreSQL.
+   * Recursively translates Shamsi date filters in search bars and domains to Gregorian UTC before hitting the database.
    * Guarantees 100% database storage in standard Gregorian UTC while preserving PostgreSQL B-Tree index speeds.
 
 5. Universal Excel & CSV Import Engine:
    * Intercepts base_import.import._parse_date_from_data.
    * Automatically converts Shamsi dates, Persian numerals (۰–۹), and Persian month names (e.g. '۱۵ فروردین ۱۴۰۵') in uploaded spreadsheets into standard Gregorian dates.
-   * Batch row memoization delivers 3.56M rows/sec processing throughput.
 
-6. Per-User Display Mode Configuration (res.users):
+6. Per-User Display Mode Configuration:
    * Each user can choose: 'Shamsi Only', 'Gregorian Only', or 'Both' (e.g. ۱۴۰۵/۰۱/۱۵ (2026-04-04)).
-   * Optional Persian numeral conversion (۰–۹) toggle.
+   * Optional Persian numeral conversion (۰–۹).
 
 7. Top Navbar Systray Widget:
-   * OWL 3 systray component displays today's Shamsi date, weekday, and holiday status directly in the top header bar with an interactive quick-view popover.
+   * Displays today's Shamsi date, weekday, and holiday status directly in the top header bar with a quick dropdown.
 
-8. Multi-Company Working Days & Calendar (res.company & jalaali.holiday):
+8. Ultra-Fast In-Memory O(1) Bitwise LRU Cache:
+   * Zero-network latency, zero-RPC client-side caching capable of converting 10,000+ date cells in under 5 milliseconds.
+
+9. Multi-Company Working Days & Calendar:
    * Configurable weekend policies (Friday only, Thursday-Friday, or custom).
-   * Preloaded statutory national and lunar holidays with annual working day calculator.
-   * Built-in calculators for Iranian Tax Article 169 deadlines and Social Security (SSO) month days.
-
-9. Odoo Enterprise Documents Spreadsheet (o-spreadsheet):
-   * Native ES module formulas: =JDATE, =JEDATE, =JEOMONTH, =JYEAR, =JMONTH, =JDAY, =JMONTHNAME, =JFORMAT.
-   * 33-year Khayyam astronomical leap year detection ensuring accurate 30-day Esfand month-ends.
-
-10. High-Speed RESTful API Endpoints:
-    * Standard JSON endpoints for mobile apps, eCommerce, and microservices (/api/jalaali/convert, /api/jalaali/today, /api/jalaali/holidays, /api/jalaali/working-days).
+   * Preloaded national & lunar holidays with annual working day calculator.
     """,
     'author': 'Ehsan Rezaei',
     'website': 'https://github.com/ehsan-r97/Odoo19Custom_Addons',

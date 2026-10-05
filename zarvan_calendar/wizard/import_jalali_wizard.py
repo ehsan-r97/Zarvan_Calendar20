@@ -159,27 +159,20 @@ class ImportJalaliWizard(models.TransientModel):
         with self.env.cr.savepoint():
             for idx, row in enumerate(data_rows, start=1):
                 try:
-                    if len(row) < 2:
-                        raise ValueError(_("Row has fewer than 2 columns."))
+                    if len(row) < 3:
+                        raise ValueError(_("Row has fewer than 3 columns."))
 
                     name = row[0]
-                    # Format: Name, Year, Month, Day OR Name, Month, Day OR Name, Date
+                    # Format: Name, Year, Month, Day OR Name, Month, Day
                     if len(row) >= 4:
                         y_val = row[1].strip()
                         year = int(y_val) if y_val and y_val not in ('-', 'null', 'None') else None
                         month = int(row[2])
                         day = int(row[3])
-                    elif len(row) == 3:
+                    else:
                         year = None
                         month = int(row[1])
                         day = int(row[2])
-                    elif len(row) == 2:
-                        parsed_date = mixin.detect_and_parse_date(row[1])
-                        if parsed_date:
-                            jy, jm, jd = mixin.gregorian_to_jalali(parsed_date.year, parsed_date.month, parsed_date.day)
-                            year, month, day = jy, jm, jd
-                        else:
-                            raise ValueError(_("Could not parse date: %s") % row[1])
 
                     # Validate date
                     check_year = year or 1405

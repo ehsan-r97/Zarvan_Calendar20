@@ -222,7 +222,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div>
                   <span className="block font-bold">فقط شمسی (Shamsi)</span>
                   <span className="text-[11px] text-slate-500 mt-0.5 block font-mono">
-                    ۱۴۰۵/۰۱/۰۱
+                    1405/01/01
                   </span>
                 </div>
               </label>
@@ -245,7 +245,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div>
                   <span className="block font-bold">هر دو همزمان (Both)</span>
                   <span className="text-[11px] text-slate-500 mt-0.5 block font-mono">
-                    ۱۴۰۵/۰۱/۰۱ (2026-03-21)
+                    1405/01/01 (2026-03-21)
                   </span>
                 </div>
               </label>
@@ -289,7 +289,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={(e) => setDateFormat(e.target.value as any)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-xs"
               >
-                <option value="YYYY/MM/DD">YYYY/MM/DD (مثال: ۱۴۰۵/۰۱/۰۱)</option>
+                <option value="YYYY/MM/DD">YYYY/MM/DD (مثال: 1405/01/01)</option>
                 <option value="YYYY-MM-DD">YYYY-MM-DD (مثال: 1405-01-01)</option>
                 <option value="YYYYMMDD">YYYYMMDD (مثال: 14050101)</option>
                 <option value="DD-MM-YYYY">DD-MM-YYYY (مثال: 01-01-1405)</option>

@@ -132,7 +132,7 @@ export const HolidaysManager: React.FC<HolidaysManagerProps> = ({
   };
 
   const formatNum = (num: number | string) => {
-    return preferences.use_persian_numbers ? toPersianDigits(num) : num;
+    return num;
   };
 
   return (

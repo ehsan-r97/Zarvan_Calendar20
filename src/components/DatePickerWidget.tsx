@@ -8,11 +8,16 @@ import {
   gregorianToJalaali,
   getCurrentJalaaliDate,
   formatDate,
-  toPersianDigits,
-  isLeapYear,
+  parseDateString,
+  toLatinDigits,
 } from '../lib/jalaali';
 import { UserPreferences } from '../data/holidays';
-import { Calendar as CalendarIcon, ChevronRight, ChevronLeft, Check, RefreshCw } from 'lucide-react';
+import {
+  Calendar as CalendarIcon,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+} from 'lucide-react';
 
 interface DatePickerWidgetProps {
   value?: string; // YYYY-MM-DD (Gregorian format)
@@ -26,11 +31,12 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
   value,
   onChange,
   preferences,
-  placeholder = 'انتخاب تاریخ شمسی...',
-  label = 'ویجت انتخاب تاریخ جلالی (OWL 2.0 Client-Side Widget)',
+  placeholder = '1405/01/01',
+  label = 'ویجت انتخاب تاریخ جلالی (OWL 3 - Odoo 20 Component)',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const initialCurrent = getCurrentJalaaliDate();
 
@@ -52,6 +58,11 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
   const [selectedJalali, setSelectedJalali] = useState<{ year: number; month: number; day: number } | null>(
     value ? initJ : null
   );
+  const [typedInput, setTypedInput] = useState<string>(
+    value
+      ? `${initJ.year}/${String(initJ.month).padStart(2, '0')}/${String(initJ.day).padStart(2, '0')}`
+      : ''
+  );
 
   // Close when clicking outside
   useEffect(() => {
@@ -67,14 +78,15 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
   const daysInMonth = getDaysInJalaaliMonth(currentYear, currentMonth);
   const firstDayWeekday = getJalaaliWeekday(currentYear, currentMonth, 1);
 
-  const handleSelectDay = (day: number) => {
-    const newJalali = { year: currentYear, month: currentMonth, day };
+  const handleSelectDay = (day: number, y = currentYear, m = currentMonth) => {
+    const newJalali = { year: y, month: m, day };
     setSelectedJalali(newJalali);
+    const jStr = `${y}/${String(m).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+    setTypedInput(jStr);
 
-    const greg = jalaaliToGregorian(currentYear, currentMonth, day);
+    const greg = jalaaliToGregorian(y, m, day);
     if (greg && onChange) {
       const gStr = `${greg.year}-${String(greg.month).padStart(2, '0')}-${String(greg.day).padStart(2, '0')}`;
-      const jStr = `${currentYear}/${String(currentMonth).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
       onChange(gStr, jStr);
     }
     setIsOpen(false);
@@ -90,8 +102,8 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
     }
   };
 
-  const handleNextMonth = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
+  const handleNextMonth = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (currentMonth === 12) {
       setCurrentYear((y) => y + 1);
       setCurrentMonth(1);
@@ -100,20 +112,22 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
     }
   };
 
+  // Keyboard typing with automatic slash formatting and English digits
+  const handleInputChange = (raw: string) => {
+    const cleanDigits = toLatinDigits(raw.replace(/[^\d/]/g, ''));
+    setTypedInput(cleanDigits);
 
-  const formatNum = (num: number | string) => {
-    return preferences.use_persian_numbers ? toPersianDigits(num) : num;
+    // If matches 8 digits continuous (14050115) or standard format, parse it immediately
+    const parsed = parseDateString(cleanDigits);
+    if (parsed && parsed.isJalali) {
+      setCurrentYear(parsed.year);
+      setCurrentMonth(parsed.month);
+      setSelectedJalali({ year: parsed.year, month: parsed.month, day: parsed.day });
+      if (onChange) {
+        onChange(parsed.gregorian, parsed.jalali);
+      }
+    }
   };
-
-  const displayString = selectedJalali
-    ? formatDate(
-        selectedJalali.year,
-        selectedJalali.month,
-        selectedJalali.day,
-        preferences.date_format,
-        preferences.use_persian_numbers
-      )
-    : '';
 
   const selectedGreg = selectedJalali
     ? jalaaliToGregorian(selectedJalali.year, selectedJalali.month, selectedJalali.day)
@@ -123,30 +137,39 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
     <div className="w-full relative" ref={containerRef}>
       {label && <label className="block text-xs font-semibold text-slate-700 mb-1.5">{label}</label>}
 
-      {/* Input trigger */}
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl shadow-xs hover:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer transition"
-      >
-        <div className="flex items-center space-x-2.5 space-x-reverse">
-          <CalendarIcon className="w-4 h-4 text-emerald-600" />
-          <span className={displayString ? 'font-medium text-slate-800' : 'text-slate-400 text-sm'}>
-            {displayString || placeholder}
-          </span>
+      {/* Input container */}
+      <div className="w-full flex items-center justify-between px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl shadow-xs hover:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition">
+        <div className="flex items-center space-x-2.5 space-x-reverse flex-1">
+          <CalendarIcon
+            className="w-4 h-4 text-emerald-600 cursor-pointer"
+            onClick={() => setIsOpen(!isOpen)}
+          />
+          <input
+            ref={inputRef}
+            type="text"
+            dir="ltr"
+            value={typedInput}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onFocus={() => setIsOpen(true)}
+            placeholder={placeholder}
+            className="w-full font-mono text-xs font-bold text-slate-800 bg-transparent outline-none tracking-wider"
+          />
         </div>
 
         {selectedGreg && (
-          <span className="text-[11px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
-            {selectedGreg.year}-{String(selectedGreg.month).padStart(2, '0')}-{String(selectedGreg.day).padStart(2, '0')}
-          </span>
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md" dir="ltr">
+              {selectedGreg.year}-{String(selectedGreg.month).padStart(2, '0')}-{String(selectedGreg.day).padStart(2, '0')}
+            </span>
+          </div>
         )}
       </div>
 
       {/* Dropdown Popup */}
       {isOpen && (
         <div className="absolute z-50 mt-2 right-0 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-in fade-in slide-in-from-top-2">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          {/* Month & Year Navigation Header */}
+          <div className="flex items-center justify-between py-2.5 border-b border-slate-100">
             <button
               type="button"
               onClick={handleNextMonth}
@@ -173,9 +196,9 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
                 onChange={(e) => setCurrentYear(parseInt(e.target.value, 10))}
                 className="bg-transparent hover:bg-slate-100 px-1.5 py-0.5 rounded-md outline-none cursor-pointer font-mono"
               >
-                {Array.from({ length: 20 }, (_, i) => 1395 + i).map((y) => (
+                {Array.from({ length: 25 }, (_, i) => 1395 + i).map((y) => (
                   <option key={y} value={y}>
-                    {formatNum(y)}
+                    {y}
                   </option>
                 ))}
               </select>
@@ -200,7 +223,7 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
           </div>
 
           {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+          <div className="grid grid-cols-7 gap-1 text-center text-xs font-mono">
             {Array.from({ length: firstDayWeekday }).map((_, i) => (
               <span key={`p-${i}`} className="p-2" />
             ))}
@@ -216,6 +239,8 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
                 initialCurrent.year === currentYear &&
                 initialCurrent.month === currentMonth &&
                 initialCurrent.day === day;
+              const weekday = (firstDayWeekday + i) % 7;
+              const isFriday = weekday === 6;
 
               return (
                 <button
@@ -226,71 +251,50 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
                     isSelected
                       ? 'bg-emerald-600 text-white font-bold shadow-xs'
                       : isToday
-                      ? 'border border-emerald-500 text-emerald-700 bg-emerald-50'
+                      ? 'border border-emerald-500 text-emerald-700 bg-emerald-50 font-bold'
+                      : isFriday
+                      ? 'hover:bg-rose-50 text-rose-600 font-semibold'
                       : 'hover:bg-slate-100 text-slate-700'
                   }`}
                 >
-                  {formatNum(day)}
+                  {day}
                   {isSelected && <Check className="w-2.5 h-2.5 absolute top-0.5 right-0.5" />}
                 </button>
               );
             })}
           </div>
 
-          {/* Quick macro shortcuts (Idea 2) */}
-          <div className="pt-2 mt-2 border-t border-slate-100 flex flex-wrap gap-1 text-[11px]">
+          {/* Footer Bar: Just Today & Clear */}
+          <div className="pt-2.5 mt-2 border-t border-slate-100 flex items-center justify-between text-xs">
             <button
               type="button"
               onClick={() => {
                 const today = getCurrentJalaaliDate();
                 setCurrentYear(today.year);
                 setCurrentMonth(today.month);
-                handleSelectDay(today.day);
+                handleSelectDay(today.day, today.year, today.month);
               }}
-              className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-medium"
+              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg transition flex items-center gap-1.5"
             >
-              امروز (t)
+              <span>امروز</span>
+              <span className="font-mono text-[11px] text-emerald-600">
+                ({initialCurrent.year}/{String(initialCurrent.month).padStart(2, '0')}/{String(initialCurrent.day).padStart(2, '0')})
+              </span>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                handleNextMonth();
-              }}
-              className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200"
-            >
-              +۱ ماه (+1m)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                handleSelectDay(daysInMonth);
-              }}
-              className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200"
-            >
-              پایان ماه (end)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentMonth(1);
-                handleSelectDay(1);
-              }}
-              className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200"
-            >
-              نوروز (nw)
-            </button>
+
             <button
               type="button"
               onClick={() => {
                 setSelectedJalali(null);
+                setTypedInput('');
+                if (onChange) onChange('', '');
                 setIsOpen(false);
               }}
-              className="ms-auto text-slate-400 hover:text-slate-600 px-1"
+              className="text-slate-400 hover:text-rose-600 transition"
             >
               پاک کردن
             </button>
           </div>
-
         </div>
       )}
     </div>

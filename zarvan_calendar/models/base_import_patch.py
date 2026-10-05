@@ -15,7 +15,7 @@ Supports:
 import re
 import logging
 from odoo import models, api
-from .jalaali_mixin import _py_jalali_to_gregorian
+from .jalaali_mixin import _py_jalali_to_gregorian, _normalize_persian_str
 
 _logger = logging.getLogger(__name__)
 
@@ -30,19 +30,12 @@ PERSIAN_MONTH_MAP = {
     'dey': 10, 'bahman': 11, 'esfand': 12,
 }
 
-PERSIAN_DIGITS = {
-    '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
-    '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
-}
-
 
 def _clean_persian_digits(val):
     s = str(val).strip()
     if s.endswith('.0') and s[:-2].isdigit():
         s = s[:-2]
-    for p, l in PERSIAN_DIGITS.items():
-        s = s.replace(p, l)
-    return s
+    return _normalize_persian_str(s)
 
 
 def _parse_jalali_to_gregorian_str(raw_val, field_type='date'):
@@ -119,22 +112,12 @@ class BaseImport(models.TransientModel):
         """
         Intercepts date parsing during native Odoo Excel/CSV imports.
         Converts any Shamsi date to Gregorian string before validation.
-        Safe for both list and tuple rows.
         """
-        memo = {}
-        new_data = []
         for row in data:
-            mutable_row = list(row) if isinstance(row, tuple) else row
-            if index < len(mutable_row) and mutable_row[index]:
-                val = str(mutable_row[index]).strip()
-                if val in memo:
-                    converted = memo[val]
-                else:
-                    converted = _parse_jalali_to_gregorian_str(val, field_type=field_type)
-                    memo[val] = converted
+            if index < len(row) and row[index]:
+                val = str(row[index]).strip()
+                converted = _parse_jalali_to_gregorian_str(val, field_type=field_type)
                 if converted != val:
-                    mutable_row[index] = converted
-            new_data.append(mutable_row)
+                    row[index] = converted
 
-
-        return super()._parse_date_from_data(new_data, index, name, field_type, options)
+        return super()._parse_date_from_data(data, index, name, field_type, options)

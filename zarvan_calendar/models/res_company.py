@@ -70,32 +70,3 @@ class ResCompany(models.Model):
                 return False
 
         return False
-
-    def get_jalali_fiscal_year_dates(self, jalali_year=None):
-        """
-        Calculates Gregorian start and end dates for the company's Jalali fiscal year.
-        Enterprise Accounting & Tax reports use this for exact period filtering.
-        """
-        self.ensure_one()
-        mixin = self.env['jalaali.mixin']
-        if not jalali_year:
-            today = date.today()
-            jy, jm, jd = mixin.gregorian_to_jalali(today.year, today.month, today.day)
-            start_m = self.fiscal_year_start_month or 1
-            jalali_year = jy if jm >= start_m else jy - 1
-
-        start_m = self.fiscal_year_start_month or 1
-        g_start = mixin.jalali_to_gregorian(jalali_year, start_m, 1)
-
-        # End date: day before next fiscal year
-        if start_m == 1:
-            end_jy = jalali_year
-            end_jm = 12
-            end_jd = mixin.get_days_in_jalali_month(end_jy, end_jm)
-        else:
-            end_jy = jalali_year + 1
-            end_jm = start_m - 1
-            end_jd = mixin.get_days_in_jalali_month(end_jy, end_jm)
-
-        g_end = mixin.jalali_to_gregorian(end_jy, end_jm, end_jd)
-        return g_start, g_end

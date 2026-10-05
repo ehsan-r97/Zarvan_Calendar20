@@ -100,7 +100,7 @@ export const WorkingDaysCalculator: React.FC<WorkingDaysCalculatorProps> = ({
   const totalWorkingHours = workingDays * dailyHours;
 
   const formatNum = (n: number | string) => {
-    return preferences.use_persian_numbers ? toPersianDigits(n) : n;
+    return n;
   };
 
   const monthObj = PERSIAN_MONTHS[selectedMonth - 1];
@@ -322,91 +322,6 @@ export const WorkingDaysCalculator: React.FC<WorkingDaysCalculatorProps> = ({
           </table>
         </div>
       </div>
-
-      {/* Labor Law & Iranian Aging Buckets Suite */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        {/* Iranian Labor Law Overtime & Nightshift Calculator (Idea 6) */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6">
-          <div className="flex items-center space-x-2 space-x-reverse mb-4">
-            <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700">
-              <Briefcase className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-800 text-sm">محاسبه حقوق و اضافه‌کاری قانون کار ایران</h3>
-              <p className="text-xs text-slate-500">مواد ۵۱، ۵۸، ۵۹ و ۶۲ قانون کار (۴۴ ساعت کار هفتگی موظف)</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 text-xs">
-            <div className="p-3 bg-slate-50 rounded-xl space-y-2 border border-slate-100">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">ساعت کار موظف روزانه (شنبه تا چهارشنبه):</span>
-                <span className="font-bold font-mono text-slate-800">۷ ساعت و ۲۰ دقیقه (۷.۳۳)</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">ضریب فوق‌العاده اضافه‌کاری (ماده ۵۹):</span>
-                <span className="font-bold text-emerald-700 font-mono">+۴۰٪ (ضریب ۱.۴۰)</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">ضریب فوق‌العاده جمعه‌کاری (ماده ۶۲):</span>
-                <span className="font-bold text-emerald-700 font-mono">+۴۰٪ (ضریب ۱.۴۰)</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">فوق‌العاده شب‌کاری ۲۲:۰۰ الی ۰۶:۰۰ (ماده ۵۸):</span>
-                <span className="font-bold text-indigo-700 font-mono">+۳۵٪ (ضریب ۰.۳۵)</span>
-              </div>
-            </div>
-
-            <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 flex justify-between items-center">
-              <div>
-                <div className="font-bold text-emerald-900 text-xs">ساعات موظفی این ماه برای کارمند:</div>
-                <div className="text-[11px] text-emerald-700 font-mono">
-                  {formatNum(workingDays)} روز کاری × ۷.۳۳ ساعت
-                </div>
-              </div>
-              <div className="text-lg font-bold font-mono text-emerald-800">
-                {formatNum(Math.round(workingDays * 7.333))} ساعت
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Smart Persian Aging Buckets (Idea 4) */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6">
-          <div className="flex items-center space-x-2 space-x-reverse mb-4">
-            <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-700">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-800 text-sm">باکت‌های سنی مطالبات ماهانه خورشیدی</h3>
-              <p className="text-xs text-slate-500">جایگزین دوره‌های ۳۰ روزه میلادی برای جلسات هیئت‌مدیره و ممیزان مالیاتی</p>
-            </div>
-          </div>
-
-          <div className="space-y-2 text-xs">
-            {[
-              { label: 'ماه جاری (سررسید نشده)', month: PERSIAN_MONTHS[(selectedMonth - 1 + 12) % 12]?.name, color: 'bg-emerald-500', days: '۰ تا ۳۰ روز' },
-              { label: '۱ ماه قبل', month: PERSIAN_MONTHS[(selectedMonth - 2 + 12) % 12]?.name, color: 'bg-amber-400', days: '۳۱ تا ۶۰ روز' },
-              { label: '۲ ماه قبل', month: PERSIAN_MONTHS[(selectedMonth - 3 + 12) % 12]?.name, color: 'bg-orange-400', days: '۶۱ تا ۹۰ روز' },
-              { label: '۳ ماه قبل', month: PERSIAN_MONTHS[(selectedMonth - 4 + 12) % 12]?.name, color: 'bg-rose-400', days: '۹۱ تا ۱۲۰ روز' },
-              { label: 'بیش از ۴ ماه قبل (مشکوک‌الوصول)', month: 'سابق', color: 'bg-purple-600', days: 'بیش از ۱۲۰ روز' },
-            ].map((b, idx) => (
-              <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <div className={`w-2.5 h-2.5 rounded-full ${b.color}`} />
-                  <span className="font-medium text-slate-800">{b.label}</span>
-                </div>
-                <div className="flex items-center space-x-3 space-x-reverse text-slate-500 font-mono">
-                  <span className="text-slate-700 font-bold">{b.month}</span>
-                  <span className="text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200">{b.days}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
-

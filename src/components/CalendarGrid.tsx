@@ -6,7 +6,6 @@ import {
   getJalaaliWeekday,
   jalaaliToGregorian,
   getCurrentJalaaliDate,
-  toPersianDigits,
   isLeapYear,
 } from '../lib/jalaali';
 import { HolidayRecord, CompanySetting, UserPreferences } from '../data/holidays';
@@ -86,7 +85,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   const currentMonthData = PERSIAN_MONTHS[selectedMonth - 1];
 
   const formatNum = (num: number | string) => {
-    return preferences.use_persian_numbers ? toPersianDigits(num) : num;
+    return num;
   };
 
   return (

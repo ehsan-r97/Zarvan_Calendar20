@@ -35,7 +35,7 @@ export function OdooLiveSimulator({ calendarMode, usePersianNum }: Props) {
   );
 
   const formatNum = (val: string | number) => {
-    return usePersianNum ? toPersianDigits(val) : String(val);
+    return String(val);
   };
 
   // Compute simulated relative date
@@ -54,52 +54,52 @@ export function OdooLiveSimulator({ calendarMode, usePersianNum }: Props) {
   const getRelativeText = (offset: number) => {
     if (offset === 0) return 'امروز (Today)';
     if (offset === -1) return 'دیروز (Yesterday)';
-    if (offset === -2) return 'پریروز (۲ روز پیش)';
+    if (offset === -2) return 'پریروز (2 روز پیش)';
     if (offset >= -6 && offset <= -3) return `${targetWeekday} گذشته (Last ${targetWeekday})`;
     if (offset >= -11 && offset < -6) return 'هفته گذشته (Last week)';
-    if (offset >= -18 && offset < -11) return '۲ هفته پیش';
+    if (offset >= -18 && offset < -11) return '2 هفته پیش';
     if (offset >= -45 && offset < -18) return 'ماه گذشته / ماه پیش (Last month)';
-    if (offset >= -75 && offset < -45) return '۲ ماه پیش';
+    if (offset >= -75 && offset < -45) return '2 ماه پیش';
     if (offset >= -135 && offset < -75) return 'فصل گذشته / فصل پیش (Last quarter)';
     if (offset >= -400 && offset <= -300) return 'سال گذشته / سال پیش (Last year)';
-    if (offset < -400) return `${formatNum(Math.abs(Math.round(offset / 365)))} سال پیش`;
+    if (offset < -400) return `${Math.abs(Math.round(offset / 365))} سال پیش`;
 
     if (offset === 1) return 'فردا (Tomorrow)';
     if (offset === 2) return 'پس‌فردا';
     if (offset >= 3 && offset <= 6) return `${targetWeekday} آینده (Next ${targetWeekday})`;
     if (offset > 6 && offset <= 11) return 'هفته آینده (Next week)';
-    if (offset > 11 && offset <= 18) return '۲ هفته بعد';
+    if (offset > 11 && offset <= 18) return '2 هفته بعد';
     if (offset > 18 && offset <= 45) return 'ماه آینده (Next month)';
-    if (offset > 45 && offset <= 75) return '۲ ماه بعد';
+    if (offset > 45 && offset <= 75) return '2 ماه بعد';
     if (offset > 75 && offset <= 135) return 'فصل آینده (Next quarter)';
     if (offset >= 300 && offset <= 400) return 'سال آینده (Next year)';
-    if (offset > 400) return `${formatNum(Math.round(offset / 365))} سال بعد`;
+    if (offset > 400) return `${Math.round(offset / 365)} سال بعد`;
 
-    return `${formatNum(testJ.year)}/${formatNum(testJ.month)}/${formatNum(testJ.day)}`;
+    return `${testJ.year}/${testJ.month}/${testJ.day}`;
   };
 
-  // Mock Sales Pivot Data Grouped by Jalali Months or Weeks
+  // Mock Sales Pivot Data Grouped by Jalali Months or Weeks (always English numerals)
   const monthlyData = [
     {
-      label: 'فروردین ۱۴۰۵',
+      label: 'فروردین 1405',
       gregorian_equiv: 'March - April 2026',
       orders_count: 42,
       total_sales: 1850000000,
     },
     {
-      label: 'اردیبهشت ۱۴۰۵',
+      label: 'اردیبهشت 1405',
       gregorian_equiv: 'April - May 2026',
       orders_count: 58,
       total_sales: 2420000000,
     },
     {
-      label: 'خرداد ۱۴۰۵',
+      label: 'خرداد 1405',
       gregorian_equiv: 'May - June 2026',
       orders_count: 65,
       total_sales: 3100000000,
     },
     {
-      label: 'تیر ۱۴۰۵',
+      label: 'تیر 1405',
       gregorian_equiv: 'June - July 2026',
       orders_count: 51,
       total_sales: 2190000000,
@@ -108,25 +108,25 @@ export function OdooLiveSimulator({ calendarMode, usePersianNum }: Props) {
 
   const weeklyData = [
     {
-      label: 'هفته ۱ سال ۱۴۰۵',
+      label: 'هفته 1 سال 1405',
       gregorian_equiv: 'W12 2026',
       orders_count: 12,
       total_sales: 420000000,
     },
     {
-      label: 'هفته ۲ سال ۱۴۰۵',
+      label: 'هفته 2 سال 1405',
       gregorian_equiv: 'W13 2026',
       orders_count: 15,
       total_sales: 680000000,
     },
     {
-      label: 'هفته ۳ سال ۱۴۰۵',
+      label: 'هفته 3 سال 1405',
       gregorian_equiv: 'W14 2026',
       orders_count: 18,
       total_sales: 790000000,
     },
     {
-      label: 'هفته ۴ سال ۱۴۰۵',
+      label: 'هفته 4 سال 1405',
       gregorian_equiv: 'W15 2026',
       orders_count: 14,
       total_sales: 510000000,
@@ -473,19 +473,19 @@ export function OdooLiveSimulator({ calendarMode, usePersianNum }: Props) {
             <div className="text-xs space-y-2 font-mono">
               <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-purple-100">
                 <span className="text-slate-600">تاریخ پایه سلول A1:</span>
-                <span className="font-bold text-purple-900">۱۴۰۵/۰۱/۱۵</span>
+                <span className="font-bold text-purple-900">1405/01/15</span>
               </div>
               <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-purple-100">
-                <span className="text-slate-600">=A1 + 10 (افزودن ۱۰ روز):</span>
-                <span className="font-bold text-emerald-700">۱۴۰۵/۰۱/۲۵ (2026-04-14)</span>
+                <span className="text-slate-600">=A1 + 10 (افزودن 10 روز):</span>
+                <span className="font-bold text-emerald-700">1405/01/25 (2026-04-14)</span>
               </div>
               <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-purple-100">
-                <span className="text-slate-600">=JEDATE(A1, 2) (+۲ ماه):</span>
-                <span className="font-bold text-emerald-700">۱۴۰۵/۰۳/۱۵ (2026-06-05)</span>
+                <span className="text-slate-600">=JEDATE(A1, 2) (+2 ماه):</span>
+                <span className="font-bold text-emerald-700">1405/03/15 (2026-06-05)</span>
               </div>
               <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-purple-100">
                 <span className="text-slate-600">=JEOMONTH(A1, 0) (آخر ماه):</span>
-                <span className="font-bold text-emerald-700">۱۴۰۵/۰۱/۳۱ (۳۱ فروردین)</span>
+                <span className="font-bold text-emerald-700">1405/01/31 (31 فروردین)</span>
               </div>
               <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-purple-100">
                 <span className="text-slate-600">=JMONTHNAME(A1):</span>

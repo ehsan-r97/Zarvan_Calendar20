@@ -3,7 +3,6 @@
 import { Component, useState, onMounted, onWillUnmount, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { user } from "@web/core/user";
-import { session } from "@web/session";
 import { useService } from "@web/core/utils/hooks";
 
 /**
@@ -25,7 +24,6 @@ export class ZarvanTodaySystray extends Component {
             gregorianDate: "",
             isHoliday: false,
             holidayName: "",
-            copied: false,
             converterInput: "",
             converterOutput: "",
         });
@@ -75,18 +73,6 @@ export class ZarvanTodaySystray extends Component {
         }
     }
 
-    async copyTodayDate() {
-        try {
-            await navigator.clipboard.writeText(this.state.jalaliNumeric);
-            this.state.copied = true;
-            setTimeout(() => {
-                this.state.copied = false;
-            }, 2000);
-        } catch (e) {
-            console.warn("Clipboard access failed:", e);
-        }
-    }
-
     onConverterInput(ev) {
         const val = ev.target.value.trim();
         this.state.converterInput = val;
@@ -95,8 +81,17 @@ export class ZarvanTodaySystray extends Component {
             return;
         }
 
+        const toLatin = (s) => {
+            const map = {
+                '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+                '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+            };
+            return String(s).replace(/[۰-۹٠-٩]/g, (w) => map[w] || w);
+        };
+        const cleanVal = window.__zarvan ? window.__zarvan.toLatinDigits(val) : toLatin(val);
+
         // Check if Gregorian (YYYY-MM-DD or YYYY/MM/DD with year > 1900)
-        const parts = val.replace(/[-.]/g, '/').split('/');
+        const parts = cleanVal.replace(/[-.]/g, '/').split('/');
         if (parts.length === 3) {
             const p1 = parseInt(parts[0], 10);
             const p2 = parseInt(parts[1], 10);
@@ -114,44 +109,25 @@ export class ZarvanTodaySystray extends Component {
                 }
             }
         }
-        this.state.converterOutput = "فرمت معتبر: ۱۴۰۵/۰۱/۱۵ یا 2026-03-21";
+        this.state.converterOutput = "فرمت معتبر: 1405/01/15 یا 2026-03-21";
     }
 
     jalaliToGregorian(jy, jm, jd) {
-        const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-        jy += 1595;
-        let days = -355668 + (365 * jy) + (Math.floor(jy / 33) * 8) + Math.floor(((jy % 33) + 3) / 4) + jd;
-        if (jm < 7) {
-            days += (jm - 1) * 31;
-        } else {
-            days += ((jm - 7) * 30) + 186;
+        if (window.__zarvan && window.__zarvan.jalaliToGregorian) {
+            return window.__zarvan.jalaliToGregorian(jy, jm, jd);
         }
-        let gy = 400 * Math.floor(days / 146097);
-        days %= 146097;
-        if (days > 36524) {
-            days -= 1;
-            gy += 100 * Math.floor(days / 36524);
-            days %= 36524;
-            if (days >= 365) days += 1;
+        let gy = jy + 621;
+        let days = (jm <= 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186) + jd - 1;
+        let g_day_no = days + 20;
+        const leap = (gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0;
+        const g_days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        let gm = 3;
+        while (g_day_no > g_days[gm - 1]) {
+            g_day_no -= g_days[gm - 1];
+            gm++;
+            if (gm > 12) { gm = 1; gy++; }
         }
-        gy += 4 * Math.floor(days / 1461);
-        days %= 1461;
-        if (days > 365) {
-            gy += Math.floor((days - 1) / 365);
-            days = (days - 1) % 365;
-        }
-        let gd = days + 1;
-        let gm = 0;
-        const leap = (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0);
-        for (let i = 0; i < 12; i++) {
-            const dim = (i === 1 && leap) ? 29 : [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][i];
-            if (gd <= dim) {
-                gm = i + 1;
-                break;
-            }
-            gd -= dim;
-        }
-        return { year: gy, month: gm, day: gd };
+        return { year: gy, month: gm, day: g_day_no };
     }
 
     toggleDropdown() {
@@ -168,6 +144,9 @@ export class ZarvanTodaySystray extends Component {
     }
 
     gregorianToJalali(gy, gm, gd) {
+        if (window.__zarvan && window.__zarvan.gregorianToJalali) {
+            return window.__zarvan.gregorianToJalali(gy, gm, gd);
+        }
         const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
         let gy2 = (gm > 2) ? (gy + 1) : gy;
         let days = 355666 + (365 * gy) + ((gy2 + 3) >> 2) - ((gy2 + 99) / 100 | 0) + ((gy2 + 399) / 400 | 0) + gd + g_d_m[gm - 1];
@@ -187,11 +166,9 @@ export class ZarvanTodaySystray extends Component {
 
 export const zarvanTodaySystrayItem = {
     Component: ZarvanTodaySystray,
-    isDisplayed: (env) => {
-        const u = env?.services?.user || user;
-        const lang = u?.lang || u?.context?.lang || '';
-        const mode = session?.jalali_calendar_mode || u?.context?.jalali_calendar_mode || u?.jalali_calendar_mode || 'shamsi';
-        return lang.startsWith('fa') || mode !== 'gregorian';
+    isDisplayed: () => {
+        const lang = user.lang || '';
+        return lang.startsWith('fa') || user.jalali_calendar_mode !== 'gregorian';
     },
 };
 

@@ -38,15 +38,19 @@ export const PERSIAN_WEEKDAYS = [
 ];
 
 export function toPersianDigits(value: string | number): string {
-  const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-  return String(value).replace(/\d/g, (d) => persianDigits[parseInt(d, 10)]);
+  // Enforce English (Latin) digits across the entire application per user requirement
+  return toLatinDigits(String(value));
 }
 
 export function toLatinDigits(value: string): string {
   const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-  let res = value;
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  let res = String(value);
   persianDigits.forEach((pd, i) => {
     res = res.replace(new RegExp(pd, 'g'), String(i));
+  });
+  arabicDigits.forEach((ad, i) => {
+    res = res.replace(new RegExp(ad, 'g'), String(i));
   });
   return res;
 }
@@ -147,6 +151,17 @@ export function formatDate(
   return usePersianNumbers ? toPersianDigits(result) : result;
 }
 
+const PERSIAN_MONTH_NAMES_MAP: Record<string, number> = {
+  'فروردین': 1, 'اردیبهشت': 2, 'خرداد': 3,
+  'تیر': 4, 'مرداد': 5, 'شهریور': 6,
+  'مهر': 7, 'آبان': 8, 'آذر': 9,
+  'دی': 10, 'بهمن': 11, 'اسفند': 12,
+  'farvardin': 1, 'ordibehesht': 2, 'khordad': 3,
+  'tir': 4, 'mordad': 5, 'shahrivar': 6,
+  'mehr': 7, 'aban': 8, 'azar': 9,
+  'dey': 10, 'bahman': 11, 'esfand': 12,
+};
+
 export function parseDateString(str: string): {
   isJalali: boolean;
   year: number;
@@ -162,15 +177,15 @@ export function parseDateString(str: string): {
   let m = 0;
   let d = 0;
 
-  // Pattern 1: YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
-  const match1 = cleaned.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  // Pattern 1: YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD (with optional HH:mm[:ss])
+  const match1 = cleaned.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:\s+\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/);
   if (match1) {
     y = parseInt(match1[1], 10);
     m = parseInt(match1[2], 10);
     d = parseInt(match1[3], 10);
   } else {
     // Pattern 2: DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY
-    const match2 = cleaned.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+    const match2 = cleaned.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:\s+\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/);
     if (match2) {
       d = parseInt(match2[1], 10);
       m = parseInt(match2[2], 10);
@@ -183,7 +198,35 @@ export function parseDateString(str: string): {
         m = parseInt(match3[2], 10);
         d = parseInt(match3[3], 10);
       } else {
-        return null;
+        // Pattern 4: Named Month e.g. "15 فروردین 1405" or "15 farvardin 1405"
+        let foundMonth = 0;
+        const lower = cleaned.toLowerCase();
+        for (const [name, num] of Object.entries(PERSIAN_MONTH_NAMES_MAP)) {
+          if (lower.includes(name)) {
+            foundMonth = num;
+            break;
+          }
+        }
+
+        if (foundMonth > 0) {
+          const numbers = cleaned.match(/\d+/g);
+          if (numbers && numbers.length >= 2) {
+            const numVals = numbers.map((n) => parseInt(n, 10));
+            const yearVal = numVals.find((n) => n >= 1300 && n <= 1500);
+            const dayVal = numVals.find((n) => n >= 1 && n <= 31 && n !== yearVal);
+            if (yearVal && dayVal) {
+              y = yearVal;
+              m = foundMonth;
+              d = dayVal;
+            } else {
+              return null;
+            }
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
       }
     }
   }

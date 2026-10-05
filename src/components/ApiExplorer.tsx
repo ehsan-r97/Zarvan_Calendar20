@@ -20,11 +20,32 @@ const ENDPOINTS: EndpointDef[] = [
     description: 'دریافت تاریخ خورشیدی و میلادی امروز همراه با شماره و نام روز هفته',
   },
   {
+    id: 'g2j',
+    name: 'تبدیل میلادی به جلالی (g2j)',
+    method: 'GET',
+    path: '/api/jalaali/convert/g2j?date=2026-03-21',
+    description: 'تبدیل سریع میلادی به شمسی از طریق پارامتر date یا year/month/day (پشتیبانی از GET و POST)',
+  },
+  {
+    id: 'j2g',
+    name: 'تبدیل جلالی به میلادی (j2g)',
+    method: 'GET',
+    path: '/api/jalaali/convert/j2g?date=1405-01-01',
+    description: 'تبدیل سریع شمسی به میلادی از طریق پارامتر date یا year/month/day (پشتیبانی از GET و POST)',
+  },
+  {
     id: 'holidays_year',
     name: 'تعطیلات سال جلالی',
     method: 'GET',
     path: '/api/jalaali/holidays/1405',
     description: 'لیست تمام تعطیلات رسمی و مناسبت‌های سال مشخص (ثابت + قمری)',
+  },
+  {
+    id: 'holidays_all',
+    name: 'فهرست تعطیلات با پارامتر (Query)',
+    method: 'GET',
+    path: '/api/jalaali/holidays?year=1405&company_id=1',
+    description: 'دریافت تعطیلات با فیلتر سال و شرکت بر اساس مستندات RESTful',
   },
   {
     id: 'is_holiday',
@@ -40,35 +61,11 @@ const ENDPOINTS: EndpointDef[] = [
     },
   },
   {
-    id: 'j2g',
-    name: 'تبدیل جلالی به گرگوری',
-    method: 'POST',
-    path: '/api/jalaali/convert/jalali-to-gregorian',
-    description: 'تبدیل سال، ماه، روز شمسی به معادل تاریخ میلادی ISO-8601',
-    defaultPayload: {
-      year: 1405,
-      month: 1,
-      day: 1,
-    },
-  },
-  {
-    id: 'g2j',
-    name: 'تبدیل گرگوری به جلالی',
-    method: 'POST',
-    path: '/api/jalaali/convert/gregorian-to-jalali',
-    description: 'تبدیل سال، ماه، روز میلادی به معادل تاریخ خورشیدی',
-    defaultPayload: {
-      year: 2026,
-      month: 3,
-      day: 21,
-    },
-  },
-  {
     id: 'working_days',
-    name: 'محاسبه روزهای کاری ماه',
+    name: 'محاسبه روزهای کاری ماه (Query)',
     method: 'GET',
-    path: '/api/jalaali/working-days/1405/1?company_id=1',
-    description: 'محاسبه تعداد روزهای کاری، تعطیلات رسمی و پایان هفته‌های یک ماه',
+    path: '/api/jalaali/working-days?year=1405&month=1&company_id=1',
+    description: 'محاسبه تعداد روزهای کاری، تعطیلات رسمی و پایان هفته‌های یک ماه بر اساس تنظیمات شرکت',
   },
 ];
 

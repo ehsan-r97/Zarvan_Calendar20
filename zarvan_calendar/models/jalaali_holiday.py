@@ -55,7 +55,7 @@ class JalaaliHoliday(models.Model):
 
     @api.depends('name', 'jalali_year', 'jalali_month', 'jalali_day')
     def _compute_display_name(self):
-        """Standard Odoo 17/18/19 display name compute method."""
+        """Standard Odoo 20 display name compute method."""
         for rec in self:
             year_str = f" ({rec.jalali_year})" if rec.jalali_year else " (Every Year)"
             rec.display_name = f"{rec.name} - {rec.jalali_month:02d}/{rec.jalali_day:02d}{year_str}"
