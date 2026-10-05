@@ -3,9 +3,10 @@
 import { patch } from "@web/core/utils/patch";
 import * as dates from "@web/core/l10n/dates";
 import { user } from "@web/core/user";
+import { session } from "@web/session";
 
 /**
- * High-Performance Enterprise Safe Global Web-Client Date Interceptor for Odoo 19
+ * High-Performance Enterprise Safe Global Web-Client Date Interceptor for Odoo 20
  *
  * Performance Architecture:
  * - Ultra-fast O(1) in-memory conversion cache (Zero-RPC, Zero-network latency).
@@ -78,6 +79,14 @@ function formatJalaliPattern(jy, jm, jd, hour, minute, second, dayOfWeek, fmt, u
     str = str.replace(/WW/g, String(weekNo).padStart(2, '0'));
     str = str.replace(/\bW\b/g, String(weekNo));
 
+    // Quarter tokens for Odoo Enterprise Pivot, Graph, and Cohort views
+    const quarterNo = Math.floor((jm - 1) / 3) + 1;
+    const quarterNames = ['اول', 'دوم', 'سوم', 'چهارم'];
+    str = str.replace(/qqqq|QQQQ/g, 'سه‌ماهه ' + quarterNames[quarterNo - 1]);
+    str = str.replace(/qqq|QQQ/g, 'سه‌ماهه ' + quarterNo);
+    str = str.replace(/qq|QQ/g, 'Q' + quarterNo);
+    str = str.replace(/\bq\b|\bQ\b/g, String(quarterNo));
+
     // Hours, Minutes, Seconds (if present)
     const h = hour || 0;
     const min = minute || 0;
@@ -98,10 +107,12 @@ function formatJalaliPattern(jy, jm, jd, hour, minute, second, dayOfWeek, fmt, u
 
 function jalaliToGregorian(jy, jm, jd) {
     const key = (jy << 9) | (jm << 5) | jd;
-    if (J2G_CACHE.has(key)) return J2G_CACHE.get(key);
+    const cached = J2G_CACHE.get(key);
+    if (cached !== undefined) return cached;
 
     const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210,
         1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+
     let bl = breaks.length, jp = breaks[0], jm_break, jump, leap, n, i, march;
     if (jy < jp || jy >= breaks[bl - 1]) return null;
     for (i = 1; i < bl; i += 1) {
@@ -135,9 +146,11 @@ function jalaliToGregorian(jy, jm, jd) {
 
 function gregorianToJalali(gy, gm, gd) {
     const key = (gy << 9) | (gm << 5) | gd;
-    if (G2J_CACHE.has(key)) return G2J_CACHE.get(key);
+    const cached = G2J_CACHE.get(key);
+    if (cached !== undefined) return cached;
 
     const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+
     let gy2 = (gm > 2) ? (gy + 1) : gy;
     let days = 355666 + (365 * gy) + ((gy2 + 3) >> 2) - ((gy2 + 99) / 100 | 0) + ((gy2 + 399) / 400 | 0) + gd + g_d_m[gm - 1];
     let jy = -1595 + (33 * (days / 12053 | 0));
@@ -167,14 +180,24 @@ function toLatinDigits(str) {
     return String(str).replace(/[۰-۹]/g, (w) => map[w] || w);
 }
 
+function getSessionInfo() {
+    return session || (window.odoo && window.odoo.__session_info__) || {};
+}
+
 function getUserCalendarMode() {
-    return user.jalali_calendar_mode || 'shamsi';
+    const s = getSessionInfo();
+    return s.jalali_calendar_mode || user?.context?.jalali_calendar_mode || user?.jalali_calendar_mode || 'shamsi';
+}
+
+function usePersianDigits() {
+    const s = getSessionInfo();
+    return Boolean(s.jalali_use_persian_numbers || user?.context?.jalali_use_persian_numbers || user?.jalali_use_persian_numbers);
 }
 
 function isJalaliActive() {
     const mode = getUserCalendarMode();
     if (mode === 'gregorian') return false;
-    const lang = user.lang || '';
+    const lang = user?.lang || user?.context?.lang || '';
     return lang.startsWith('fa') || mode === 'both' || mode === 'shamsi';
 }
 
@@ -238,11 +261,21 @@ patch(dates, {
             } else if (value instanceof Date) {
                 dt = { year: value.getFullYear(), month: value.getMonth() + 1, day: value.getDate() };
             } else if (typeof value === 'string') {
-                const sm = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-                if (sm) {
-                    dt = { year: parseInt(sm[1], 10), month: parseInt(sm[2], 10), day: parseInt(sm[3], 10) };
+                if (value.length >= 10 && value.charCodeAt(4) === 45 && value.charCodeAt(7) === 45) {
+                    // Ultra-fast path for standard ISO 'YYYY-MM-DD' (skips regex engine entirely)
+                    dt = {
+                        year: +value.slice(0, 4),
+                        month: +value.slice(5, 7),
+                        day: +value.slice(8, 10),
+                    };
+                } else {
+                    const sm = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+                    if (sm) {
+                        dt = { year: parseInt(sm[1], 10), month: parseInt(sm[2], 10), day: parseInt(sm[3], 10) };
+                    }
                 }
             }
+
 
             if (dt && dt.year) {
                 const j = gregorianToJalali(dt.year, dt.month, dt.day);
@@ -254,7 +287,7 @@ patch(dates, {
                         j.year, j.month, j.day,
                         0, 0, 0,
                         dayOfWeek, fmt,
-                        user.jalali_use_persian_numbers
+                        usePersianDigits()
                     );
 
                     const mode = getUserCalendarMode();
@@ -293,18 +326,31 @@ patch(dates, {
             } else if (value instanceof Date) {
                 dt = { year: value.getFullYear(), month: value.getMonth() + 1, day: value.getDate(), hour: value.getHours(), minute: value.getMinutes(), second: value.getSeconds() };
             } else if (typeof value === 'string') {
-                const sm = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[\sT](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
-                if (sm) {
+                if (value.length >= 19 && value.charCodeAt(4) === 45 && value.charCodeAt(7) === 45) {
+                    // Ultra-fast path for standard ISO 'YYYY-MM-DD HH:mm:ss'
                     dt = {
-                        year: parseInt(sm[1], 10),
-                        month: parseInt(sm[2], 10),
-                        day: parseInt(sm[3], 10),
-                        hour: sm[4] ? parseInt(sm[4], 10) : 0,
-                        minute: sm[5] ? parseInt(sm[5], 10) : 0,
-                        second: sm[6] ? parseInt(sm[6], 10) : 0,
+                        year: +value.slice(0, 4),
+                        month: +value.slice(5, 7),
+                        day: +value.slice(8, 10),
+                        hour: +value.slice(11, 13),
+                        minute: +value.slice(14, 16),
+                        second: +value.slice(17, 19),
                     };
+                } else {
+                    const sm = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[\sT](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+                    if (sm) {
+                        dt = {
+                            year: parseInt(sm[1], 10),
+                            month: parseInt(sm[2], 10),
+                            day: parseInt(sm[3], 10),
+                            hour: sm[4] ? parseInt(sm[4], 10) : 0,
+                            minute: sm[5] ? parseInt(sm[5], 10) : 0,
+                            second: sm[6] ? parseInt(sm[6], 10) : 0,
+                        };
+                    }
                 }
             }
+
 
             if (dt && dt.year) {
                 const j = gregorianToJalali(dt.year, dt.month, dt.day);
@@ -316,7 +362,7 @@ patch(dates, {
                         j.year, j.month, j.day,
                         dt.hour || 0, dt.minute || 0, dt.second || 0,
                         dayOfWeek, fmt,
-                        user.jalali_use_persian_numbers
+                        usePersianDigits()
                     );
 
                     const mode = getUserCalendarMode();
@@ -344,6 +390,10 @@ patch(dates, {
             if (parts) {
                 const g = jalaliToGregorian(parts.y, parts.m, parts.d);
                 if (g) {
+                    // Direct Luxon DateTime instantiation prevents locale dateFormat mismatch
+                    if (window.luxon && window.luxon.DateTime) {
+                        return window.luxon.DateTime.fromObject({ year: g.year, month: g.month, day: g.day });
+                    }
                     const gIso = `${g.year}-${String(g.month).padStart(2, '0')}-${String(g.day).padStart(2, '0')}`;
                     const luxonDt = originalParseDate.call(this, gIso, options);
                     if (luxonDt && luxonDt.isValid) {
@@ -368,6 +418,23 @@ patch(dates, {
             if (parts) {
                 const g = jalaliToGregorian(parts.y, parts.m, parts.d);
                 if (g) {
+                    let h = 0, min = 0, sec = 0;
+                    if (parts.timeStr) {
+                        const tp = parts.timeStr.split(':');
+                        h = parseInt(tp[0], 10) || 0;
+                        min = parseInt(tp[1], 10) || 0;
+                        sec = parseInt(tp[2], 10) || 0;
+                    }
+                    if (window.luxon && window.luxon.DateTime) {
+                        return window.luxon.DateTime.fromObject({
+                            year: g.year,
+                            month: g.month,
+                            day: g.day,
+                            hour: h,
+                            minute: min,
+                            second: sec,
+                        });
+                    }
                     const gIso = `${g.year}-${String(g.month).padStart(2, '0')}-${String(g.day).padStart(2, '0')}`;
                     const timePart = parts.timeStr || "00:00:00";
                     const fullIso = `${gIso} ${timePart}`;
@@ -400,7 +467,7 @@ patch(dates, {
             const diffHours = Math.round(diffMin / 60);
             const diffDays = Math.round(diffHours / 24);
 
-            const useFa = user.jalali_use_persian_numbers;
+            const useFa = usePersianDigits();
             const targetWeekday = PERSIAN_WEEKDAYS[targetDate.getDay()];
 
             // 1. Immediate Moments & Hours

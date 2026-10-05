@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Universal Excel and CSV Import Jalali Interceptor - Odoo 19
+Universal Excel and CSV Import Jalali Interceptor - Odoo 20
 Hooks into Odoo's native 'base_import.import' engine so that ANY
 Excel (.xlsx, .xls) or CSV file imported into ANY Odoo model (Contacts,
 Sales, Invoices, Stock, Products, etc.) automatically detects and
@@ -119,12 +119,22 @@ class BaseImport(models.TransientModel):
         """
         Intercepts date parsing during native Odoo Excel/CSV imports.
         Converts any Shamsi date to Gregorian string before validation.
+        Safe for both list and tuple rows.
         """
+        memo = {}
+        new_data = []
         for row in data:
-            if index < len(row) and row[index]:
-                val = str(row[index]).strip()
-                converted = _parse_jalali_to_gregorian_str(val, field_type=field_type)
+            mutable_row = list(row) if isinstance(row, tuple) else row
+            if index < len(mutable_row) and mutable_row[index]:
+                val = str(mutable_row[index]).strip()
+                if val in memo:
+                    converted = memo[val]
+                else:
+                    converted = _parse_jalali_to_gregorian_str(val, field_type=field_type)
+                    memo[val] = converted
                 if converted != val:
-                    row[index] = converted
+                    mutable_row[index] = converted
+            new_data.append(mutable_row)
 
-        return super()._parse_date_from_data(data, index, name, field_type, options)
+
+        return super()._parse_date_from_data(new_data, index, name, field_type, options)

@@ -8,6 +8,3 @@ from . import ir_qweb_fields
 from . import base_search_patch
 from . import base_import_patch
 from . import base_group_patch
-
-
-

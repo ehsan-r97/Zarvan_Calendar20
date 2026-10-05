@@ -137,17 +137,26 @@ app.post('/api/jalaali/is-holiday', (req: Request, res: Response) => {
   }
 });
 
-// 3. POST /api/jalaali/convert/jalali-to-gregorian
-app.post('/api/jalaali/convert/jalali-to-gregorian', (req: Request, res: Response) => {
+// 3. POST /api/jalaali/convert/jalali-to-gregorian & GET/POST /api/jalaali/convert/j2g
+const handleJ2G = (req: Request, res: Response) => {
   try {
-    const { year, month, day } = req.body;
-    if (!year || !month || !day) {
-      return res.status(400).json({ success: false, error: 'Missing required parameters: year, month, day' });
+    const dateQuery = req.query.date as string || req.body.date as string;
+    let y: number, m: number, d: number;
+
+    if (dateQuery) {
+      const parts = dateQuery.replace(/-/g, '/').split('/');
+      y = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10);
+      d = parseInt(parts[2], 10);
+    } else {
+      y = parseInt(req.body.year || req.query.year, 10);
+      m = parseInt(req.body.month || req.query.month, 10);
+      d = parseInt(req.body.day || req.query.day, 10);
     }
 
-    const y = parseInt(year, 10);
-    const m = parseInt(month, 10);
-    const d = parseInt(day, 10);
+    if (!y || !m || !d) {
+      return res.status(400).json({ success: false, error: 'Missing required parameters: year, month, day or date' });
+    }
 
     const greg = jalaaliToGregorian(y, m, d);
     if (!greg) {
@@ -172,19 +181,31 @@ app.post('/api/jalaali/convert/jalali-to-gregorian', (req: Request, res: Respons
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
-});
+};
 
-// 4. POST /api/jalaali/convert/gregorian-to-jalali
-app.post('/api/jalaali/convert/gregorian-to-jalali', (req: Request, res: Response) => {
+app.post('/api/jalaali/convert/jalali-to-gregorian', handleJ2G);
+app.all('/api/jalaali/convert/j2g', handleJ2G);
+
+// 4. POST /api/jalaali/convert/gregorian-to-jalali & GET/POST /api/jalaali/convert/g2j
+const handleG2J = (req: Request, res: Response) => {
   try {
-    const { year, month, day } = req.body;
-    if (!year || !month || !day) {
-      return res.status(400).json({ success: false, error: 'Missing required parameters: year, month, day' });
+    const dateQuery = req.query.date as string || req.body.date as string;
+    let y: number, m: number, d: number;
+
+    if (dateQuery) {
+      const parts = dateQuery.replace(/\//g, '-').split('-');
+      y = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10);
+      d = parseInt(parts[2], 10);
+    } else {
+      y = parseInt(req.body.year || req.query.year, 10);
+      m = parseInt(req.body.month || req.query.month, 10);
+      d = parseInt(req.body.day || req.query.day, 10);
     }
 
-    const y = parseInt(year, 10);
-    const m = parseInt(month, 10);
-    const d = parseInt(day, 10);
+    if (!y || !m || !d) {
+      return res.status(400).json({ success: false, error: 'Missing required parameters: year, month, day or date' });
+    }
 
     const jal = gregorianToJalaali(y, m, d);
     if (!jal) {
@@ -209,7 +230,10 @@ app.post('/api/jalaali/convert/gregorian-to-jalali', (req: Request, res: Respons
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
-});
+};
+
+app.post('/api/jalaali/convert/gregorian-to-jalali', handleG2J);
+app.all('/api/jalaali/convert/g2j', handleG2J);
 
 // 5. GET /api/jalaali/current
 app.get('/api/jalaali/current', (_req: Request, res: Response) => {

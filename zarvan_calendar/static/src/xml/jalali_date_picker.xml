@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="zarvan_calendar.JalaliDatePicker">
-        <div class="o_jalali_date_picker position-relative d-inline-block w-100" style="direction: rtl;">
+        <div class="o_jalali_date_picker position-relative d-inline-block w-100" style="direction: rtl;" t-ref="root">
             <div class="input-group">
                 <input type="text"
                        class="form-control o_input text-start"

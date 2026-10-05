@@ -1,4 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_jalaali_holiday_user,jalaali.holiday.user,model_jalaali_holiday,group_jalaali_user,1,0,0,0
 access_jalaali_holiday_manager,jalaali.holiday.manager,model_jalaali_holiday,group_jalaali_manager,1,1,1,1
+access_jalaali_import_wizard_user,jalaali.import.wizard.user,model_jalaali_import_wizard,group_jalaali_user,1,1,1,1
 access_jalaali_import_wizard_manager,jalaali.import.wizard.manager,model_jalaali_import_wizard,group_jalaali_manager,1,1,1,1

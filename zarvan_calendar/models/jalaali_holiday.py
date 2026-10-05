@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Jalali Holiday Model - Odoo 19
+Jalali Holiday Model - Odoo 20
 Stores national, lunar, fixed, and regional holidays.
 """
 

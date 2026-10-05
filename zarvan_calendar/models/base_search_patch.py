@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Enterprise Search Query Jalali-to-Gregorian Domain Rewriter - Odoo 19
+Enterprise Search Query Jalali-to-Gregorian Domain Rewriter - Odoo 20
 Ensures PostgreSQL always queries indexed B-Tree columns in native Gregorian UTC,
 while allowing users to filter using any Shamsi date format:
-- Recursive domain support for nested '&' and '|' trees
+- Recursive domain support for nested '&' and '|' trees and expression.Domain objects
+- Accurate user timezone-aware UTC datetime boundary conversion (e.g. Asia/Tehran UTC+03:30)
 - List operand support for 'in' and 'not in' operators
 - Compact 8-digit support (e.g. 14050101) alongside YYYY/MM/DD and YYYY-MM-DD
 - Normalization of Persian numerals (۰–۹)
@@ -11,14 +12,17 @@ while allowing users to filter using any Shamsi date format:
 
 import re
 import logging
+from datetime import datetime, date
 from odoo import models, api, fields
 from .jalaali_mixin import _py_jalali_to_gregorian
 
 _logger = logging.getLogger(__name__)
 
-PERSIAN_DIGITS = {
+DIGIT_MAP = {
     '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
-    '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
+    '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+    '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+    '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
 }
 
 
@@ -26,13 +30,16 @@ def _normalize_persian_str(val):
     if not isinstance(val, str):
         return val
     cleaned = val.strip()
-    for p_char, l_char in PERSIAN_DIGITS.items():
+    for p_char, l_char in DIGIT_MAP.items():
         cleaned = cleaned.replace(p_char, l_char)
     return cleaned
 
 
-def _convert_single_date(val, is_datetime=False, operator='='):
-    """Parses a potential Jalali date string and converts it to Gregorian ISO using pure Python."""
+def _convert_single_date(val, is_datetime=False, operator='=', user_tz=None):
+    """
+    Parses a potential Jalali date string and converts it to Gregorian ISO.
+    For datetime fields, converts local user timezone to UTC timestamp.
+    """
     if not isinstance(val, str):
         return val
 
@@ -42,15 +49,31 @@ def _convert_single_date(val, is_datetime=False, operator='='):
         g_str = g_date.strftime('%Y-%m-%d')
         if not is_datetime:
             return g_str
+
         if time_part:
-            return f"{g_str} {time_part}"
-        # For datetime fields without explicit time:
-        if operator in ('<=', '>'):
-            return f"{g_str} 23:59:59"
+            tp = [int(p) for p in time_part.split(':')]
+            h = tp[0] if len(tp) > 0 else 0
+            mi = tp[1] if len(tp) > 1 else 0
+            s = tp[2] if len(tp) > 2 else 0
+        elif operator in ('<=', '>'):
+            h, mi, s = 23, 59, 59
         elif operator in ('>=', '<'):
-            return f"{g_str} 00:00:00"
+            h, mi, s = 0, 0, 0
         else:
-            return g_str
+            h, mi, s = 0, 0, 0
+
+        # Timezone localization to UTC for PostgreSQL datetime query
+        if user_tz:
+            try:
+                import pytz
+                local_tz = pytz.timezone(user_tz)
+                local_dt = local_tz.localize(datetime(g_date.year, g_date.month, g_date.day, h, mi, s))
+                utc_dt = local_dt.astimezone(pytz.utc)
+                return utc_dt.strftime('%Y-%m-%d %H:%M:%S')
+            except Exception:
+                pass
+
+        return f"{g_str} {h:02d}:{mi:02d}:{s:02d}"
 
     # 1. Match YYYY-MM-DD or YYYY/MM/DD with optional HH:MM[:SS]
     m1 = re.match(r'^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:\s+(\d{1,2}:\d{1,2}(?::\d{1,2})?))?$', cleaned)
@@ -97,10 +120,18 @@ class BaseModelJalaaliSearch(models.AbstractModel):
     def _convert_jalali_domain(self, domain):
         """
         Recursively traverses search domains, translating any Shamsi date operands
-        to Gregorian before passing to PostgreSQL.
+        to Gregorian UTC before passing to PostgreSQL.
         """
-        if not domain or not isinstance(domain, (list, tuple)):
+        if not domain:
             return domain
+
+        # Handle expression.Domain objects in modern Odoo 17/18/19/20
+        if hasattr(domain, 'tolist'):
+            domain = domain.tolist()
+        elif not isinstance(domain, (list, tuple)):
+            return domain
+
+        user_tz = self.env.context.get('tz') or (self.env.user.tz if hasattr(self.env.user, 'tz') else None) or 'Asia/Tehran'
 
         new_domain = []
         for item in domain:
@@ -135,9 +166,9 @@ class BaseModelJalaaliSearch(models.AbstractModel):
                     if is_candidate:
                         is_dt = bool(field and field.type == 'datetime')
                         if isinstance(value, str):
-                            value = _convert_single_date(value, is_datetime=is_dt, operator=operator)
+                            value = _convert_single_date(value, is_datetime=is_dt, operator=operator, user_tz=user_tz)
                         elif isinstance(value, (list, tuple)):
-                            value = [_convert_single_date(v, is_datetime=is_dt, operator=operator) for v in value]
+                            value = [_convert_single_date(v, is_datetime=is_dt, operator=operator, user_tz=user_tz) for v in value]
 
                         item = (field_name, operator, value)
                     new_domain.append(item)

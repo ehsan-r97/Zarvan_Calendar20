@@ -90,8 +90,8 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
     }
   };
 
-  const handleNextMonth = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleNextMonth = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (currentMonth === 12) {
       setCurrentYear((y) => y + 1);
       setCurrentMonth(1);
@@ -99,6 +99,7 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
       setCurrentMonth((m) => m + 1);
     }
   };
+
 
   const formatNum = (num: number | string) => {
     return preferences.use_persian_numbers ? toPersianDigits(num) : num;
@@ -236,8 +237,8 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
             })}
           </div>
 
-          {/* Quick actions */}
-          <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+          {/* Quick macro shortcuts (Idea 2) */}
+          <div className="pt-2 mt-2 border-t border-slate-100 flex flex-wrap gap-1 text-[11px]">
             <button
               type="button"
               onClick={() => {
@@ -246,22 +247,50 @@ export const DatePickerWidget: React.FC<DatePickerWidgetProps> = ({
                 setCurrentMonth(today.month);
                 handleSelectDay(today.day);
               }}
-              className="text-emerald-700 hover:text-emerald-800 font-medium"
+              className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-medium"
             >
-              امروز ({formatNum(initialCurrent.year)}/{formatNum(initialCurrent.month)}/{formatNum(initialCurrent.day)})
+              امروز (t)
             </button>
-
+            <button
+              type="button"
+              onClick={() => {
+                handleNextMonth();
+              }}
+              className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200"
+            >
+              +۱ ماه (+1m)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handleSelectDay(daysInMonth);
+              }}
+              className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200"
+            >
+              پایان ماه (end)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentMonth(1);
+                handleSelectDay(1);
+              }}
+              className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200"
+            >
+              نوروز (nw)
+            </button>
             <button
               type="button"
               onClick={() => {
                 setSelectedJalali(null);
                 setIsOpen(false);
               }}
-              className="text-slate-400 hover:text-slate-600"
+              className="ms-auto text-slate-400 hover:text-slate-600 px-1"
             >
               پاک کردن
             </button>
           </div>
+
         </div>
       )}
     </div>

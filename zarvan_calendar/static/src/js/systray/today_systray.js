@@ -3,10 +3,11 @@
 import { Component, useState, onMounted, onWillUnmount, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { user } from "@web/core/user";
+import { session } from "@web/session";
 import { useService } from "@web/core/utils/hooks";
 
 /**
- * Top Navbar Systray Widget for Odoo 19
+ * Top Navbar Systray Widget for Odoo 20
  * Displays today's Shamsi date, Persian weekday, and holiday badge directly
  * in the Odoo top header bar with a fast popover details panel.
  */
@@ -186,9 +187,11 @@ export class ZarvanTodaySystray extends Component {
 
 export const zarvanTodaySystrayItem = {
     Component: ZarvanTodaySystray,
-    isDisplayed: () => {
-        const lang = user.lang || '';
-        return lang.startsWith('fa') || user.jalali_calendar_mode !== 'gregorian';
+    isDisplayed: (env) => {
+        const u = env?.services?.user || user;
+        const lang = u?.lang || u?.context?.lang || '';
+        const mode = session?.jalali_calendar_mode || u?.context?.jalali_calendar_mode || u?.jalali_calendar_mode || 'shamsi';
+        return lang.startsWith('fa') || mode !== 'gregorian';
     },
 };
 

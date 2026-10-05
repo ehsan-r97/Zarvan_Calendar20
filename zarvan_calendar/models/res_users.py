@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-User Preferences for Persian Calendar - Odoo 19
+User Preferences for Persian Calendar - Odoo 20
 Configures display mode (Shamsi, Gregorian, or Both), date format, and numerals.
 """
 
@@ -68,10 +68,21 @@ class IrHttp(models.AbstractModel):
     _inherit = 'ir.http'
 
     def session_info(self):
-        """Ensures session_info includes Jalali user preferences at web client bootstrap in Odoo 19/20."""
+        """Ensures session_info and user_context include Jalali user preferences at web client bootstrap in Odoo 20."""
         result = super().session_info()
         user = self.env.user
-        result['jalali_calendar_mode'] = getattr(user, 'jalali_calendar_mode', 'shamsi') or 'shamsi'
-        result['jalali_use_persian_numbers'] = bool(getattr(user, 'jalali_use_persian_numbers', False))
-        result['jalali_date_format'] = getattr(user, 'jalali_date_format', 'YYYY/MM/DD') or 'YYYY/MM/DD'
+        mode = getattr(user, 'jalali_calendar_mode', 'shamsi') or 'shamsi'
+        use_fa_num = bool(getattr(user, 'jalali_use_persian_numbers', False))
+        date_fmt = getattr(user, 'jalali_date_format', 'YYYY/MM/DD') or 'YYYY/MM/DD'
+
+        result['jalali_calendar_mode'] = mode
+        result['jalali_use_persian_numbers'] = use_fa_num
+        result['jalali_date_format'] = date_fmt
+
+        # Also inject into user_context for direct access via user.context in OWL 3
+        if 'user_context' in result and isinstance(result['user_context'], dict):
+            result['user_context']['jalali_calendar_mode'] = mode
+            result['user_context']['jalali_use_persian_numbers'] = use_fa_num
+            result['user_context']['jalali_date_format'] = date_fmt
+
         return result

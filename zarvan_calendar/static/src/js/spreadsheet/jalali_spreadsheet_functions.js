@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
 /**
- * Enterprise Jalali Spreadsheet Functions & Formulas for Odoo 19
+ * Enterprise Jalali Spreadsheet Functions & Formulas for Odoo 20
  * Supports Odoo Documents Spreadsheet & o-spreadsheet:
  *
  * Custom Persian Spreadsheet Formulas:
@@ -22,14 +22,25 @@
 // Defensive check: If o-spreadsheet is installed in this Odoo instance, register functions
 try {
     let functionRegistry = null;
+    let helpers = null;
 
-    // Check modern o-spreadsheet bundle
-    if (window.o_spreadsheet && window.o_spreadsheet.functionRegistry) {
+    // Check Odoo 18/19/20 ES Module loader first
+    if (typeof odoo !== "undefined" && odoo.loader && odoo.loader.modules) {
+        const mod = odoo.loader.modules.get("@odoo/o-spreadsheet") || odoo.loader.modules.get("@spreadsheet/o_spreadsheet/o_spreadsheet");
+        if (mod) {
+            functionRegistry = mod.functionRegistry || (mod.default && mod.default.functionRegistry);
+            helpers = mod.helpers || (mod.default && mod.default.helpers);
+        }
+    }
+
+    // Fallback to window global if present
+    if (!functionRegistry && window.o_spreadsheet) {
         functionRegistry = window.o_spreadsheet.functionRegistry;
+        helpers = window.o_spreadsheet.helpers;
     }
 
     if (functionRegistry) {
-        const { toBoolean, toNumber, toString } = window.o_spreadsheet.helpers || {};
+        const { toBoolean, toNumber, toString } = helpers || {};
 
         // Helper to convert JS Date / Excel serial to Gregorian Y, M, D
         const serialToGregorian = (serial) => {
@@ -172,6 +183,10 @@ try {
             returns: ["STRING"],
         });
 
+        const isLeapJalali = (jy) => {
+            return [1, 5, 9, 13, 17, 22, 26, 30].includes(jy % 33);
+        };
+
         // 6. =JEDATE(date, months) - Adds N Persian months
         functionRegistry.add("JEDATE", {
             description: "Returns the serial date that is the indicated number of Shamsi months before or after a date.",
@@ -187,8 +202,8 @@ try {
                 const targetJy = Math.floor(totalMonths / 12);
                 const targetJm = (totalMonths % 12) + 1;
 
-                // Adjust for month length: 31 days in months 1-6, 30 in 7-11, 29/30 in 12
-                const maxDays = targetJm <= 6 ? 31 : targetJm <= 11 ? 30 : 29;
+                // Adjust for month length: 31 days in months 1-6, 30 in 7-11, 29/30 in 12 (leap-aware)
+                const maxDays = targetJm <= 6 ? 31 : targetJm <= 11 ? 30 : (isLeapJalali(targetJy) ? 30 : 29);
                 const targetJd = Math.min(jd, maxDays);
 
                 const newG = j2g(targetJy, targetJm, targetJd);
@@ -213,7 +228,7 @@ try {
                 const targetJy = Math.floor(totalMonths / 12);
                 const targetJm = (totalMonths % 12) + 1;
 
-                const maxDays = targetJm <= 6 ? 31 : targetJm <= 11 ? 30 : 29;
+                const maxDays = targetJm <= 6 ? 31 : targetJm <= 11 ? 30 : (isLeapJalali(targetJy) ? 30 : 29);
                 const newG = j2g(targetJy, targetJm, maxDays);
                 if (!newG) return Number(serial);
                 return gregorianToSerial(newG.gy, newG.gm, newG.gd);

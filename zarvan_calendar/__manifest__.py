@@ -5,11 +5,11 @@
     'name': 'Zarvan Persian Calendar',
     'version': '20.0.1.0.0',
     'category': 'Localization',
-    'summary': 'Enterprise Jalali Calendar, Global Zero-XML View & Report Conversion, Pivot/Graph Grouping, and Excel Import for Odoo 20 & 19',
+    'summary': 'Enterprise Jalali Calendar, Global Zero-XML View & Report Conversion, Pivot/Graph Grouping, and Excel Import for Odoo 20',
     'description': """
-Zarvan Persian Calendar for Odoo 20 & 19 (Enterprise Edition)
-==============================================================
-A high-performance, enterprise-grade Jalali (Persian / Solar Hijri) localization engine for Odoo 20.0 & 19.0.
+Zarvan Persian Calendar for Odoo 20 (Enterprise Edition)
+========================================================
+A high-performance, enterprise-grade Jalali (Persian / Solar Hijri) localization engine natively designed for Odoo 20.0 Enterprise & Community.
 
 Core Architectural Innovations:
 --------------------------------
@@ -46,6 +46,18 @@ Core Architectural Innovations:
 9. Multi-Company Working Days & Calendar:
    * Configurable weekend policies (Friday only, Thursday-Friday, or custom).
    * Preloaded national & lunar holidays with annual working day calculator.
+
+10. Odoo Enterprise Accounting & Financial Reports:
+   * Dynamic period range service (get_jalali_period_date_range) for balance sheet and P&L filters.
+   * Fiscal year boundaries (get_jalali_fiscal_year_dates) respecting company fiscal month and leap years.
+
+11. Odoo Enterprise Documents Spreadsheet (o-spreadsheet):
+   * Native ES module formulas: =JDATE, =JEDATE, =JEOMONTH, =JYEAR, =JMONTH, =JDAY, =JMONTHNAME, =JFORMAT.
+   * 33-year Khayyam astronomical leap year detection ensuring accurate 30-day Esfand month-ends.
+
+12. High-Speed RESTful API Endpoints:
+   * Full RESTful JSON endpoints for mobile apps, eCommerce, and microservices (/api/jalaali/...).
+   * Supports both GET and POST requests cleanly with standard HTTP status codes.
     """,
     'author': 'Ehsan Rezaei',
     'website': 'https://github.com/ehsan-r97/Odoo19Custom_Addons',

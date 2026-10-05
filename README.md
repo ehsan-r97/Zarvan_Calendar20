@@ -1,13 +1,13 @@
-# Zarvan Persian Calendar - Odoo 19 Enterprise Module
+# Zarvan Persian Calendar - Odoo 20 Enterprise Module
 
-[![Odoo Version](https://img.shields.io/badge/Odoo-19.0-green.svg)](https://www.odoo.com)
+[![Odoo Version](https://img.shields.io/badge/Odoo-20.0-green.svg)](https://www.odoo.com)
 [![License](https://img.shields.io/badge/License-LGPL--3-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-19.0.1.0.0-orange.svg)]()
+[![Version](https://img.shields.io/badge/Version-20.0.1.0.0-orange.svg)]()
 [![Performance](https://img.shields.io/badge/Performance-Zero--RPC%20O(1)-emerald.svg)]()
 
 ## Overview
 
-**Zarvan Persian Calendar** is an enterprise-grade Jalali (Persian / Solar Hijri) localization engine for **Odoo 19.0**.
+**Zarvan Persian Calendar** is an enterprise-grade Jalali (Persian / Solar Hijri) localization engine natively built for **Odoo 20.0 Enterprise & Community Editions**.
 
 Unlike traditional Persian modules that require manually inheriting every individual XML view, Zarvan uses **Global Core Framework Interception**. It automatically converts dates across all current and future Odoo modules—including Pivot tables, Graph views, Search filters, PDF invoices, and Excel imports—while keeping the underlying PostgreSQL database 100% standard Gregorian UTC.
 
@@ -54,19 +54,24 @@ Unlike traditional Persian modules that require manually inheriting every indivi
 * **`formatRelativeTime` Patch**:
   - Natural Persian expressions: **امروز**, **دیروز**, **۲ روز پیش**, **هفته گذشته**, **ماه گذشته**, **فردا**, **پس‌فردا**, **در ۳ روز آینده**, **هفته آینده**, and **لحظاتی پیش**.
 
-### 7. Per-User Display Mode Configuration (`res.users`)
+### 8. Per-User Display Mode Configuration (`res.users`)
 * Every user can configure their preferred display mode:
   - **`shamsi`**: Shamsi only (e.g. `۱۴۰۵/۰۱/۰۱`).
   - **`gregorian`**: Gregorian only (e.g. `2026-03-21`).
   - **`both`**: Both simultaneously with Gregorian in parentheses: **`۱۴۰۵/۰۱/۰۱ (2026-03-21)`**.
   - Toggle Persian numerals (`۰–۹`) on or off.
 
-### 8. Top Navbar Systray Widget
-* **OWL 2.0 Systray Component (`today_systray.js`)**:
+### 9. Top Navbar Systray Widget
+* **OWL 3 & OWL 2.0 Systray Component (`today_systray.js`)**:
   - Displays today's Shamsi date, weekday, and working/holiday status directly in Odoo's top header.
   - Interactive popover shows corresponding Gregorian date and active holidays with a shortcut to the Calendar manager.
 
-### 9. Ultra-Fast In-Memory O(1) Bitwise LRU Cache
+### 10. Odoo Enterprise Accounting & Financial Reports
+* **Fiscal Year & Dynamic Periods**:
+  - `res.company.get_jalali_fiscal_year_dates()`: Computes exact Gregorian bounds for the company's Persian fiscal year.
+  - `jalaali.service.get_jalali_period_date_range()`: Translates period filters (Month, Quarter 1-4, Half-Year 1-2, Annual) into Gregorian ranges for dynamic Balance Sheet, Profit & Loss, and Tax Audit reports.
+
+### 11. Ultra-Fast In-Memory O(1) Bitwise LRU Cache
 * Date calculations use an in-memory bitwise hash map: `(gy << 9) | (gm << 5) | gd`.
 * **Zero RPC latency**: Renders 10,000+ date cells in under 5 milliseconds in the browser thread. Faster than Redis with zero network serialization overhead.
 
@@ -119,9 +124,11 @@ Zarvan provides high-speed JSON API endpoints for external applications (mobile 
 
 | Endpoint | Method | Description |
 |---|---|---|
+| `/api/jalaali/current` | `GET` | Returns today's date in Shamsi & Gregorian with weekday |
 | `/api/jalaali/convert/g2j` | `GET/POST` | Converts Gregorian date to Jalali |
 | `/api/jalaali/convert/j2g` | `GET/POST` | Converts Jalali date to Gregorian |
 | `/api/jalaali/holidays` | `GET/POST` | Retrieves or creates calendar holidays |
+| `/api/jalaali/holidays/<year>` | `GET` | Retrieves all holidays for a specific Jalali year |
 | `/api/jalaali/working-days` | `GET` | Calculates working days and duty hours |
 | `/api/jalaali/preferences` | `GET/POST` | Retrieves or updates user calendar preferences |
 
@@ -131,15 +138,19 @@ Zarvan provides high-speed JSON API endpoints for external applications (mobile 
 
 Run the built-in test suite to verify module integrity:
 ```bash
-./odoo-bin -c odoo.conf -d your_database --test-enable --stop-after-init -i zarvan_calendar
+./odoo-bin -c odoo.conf -d your_database --test-enable --test-tags=zarvan_calendar --stop-after-init
 ```
 
 Tested scenarios include:
-* 33-year Khayyam astronomical leap year calculations.
-* Bidirectional conversions and inverse parity.
+* 33-year Khayyam astronomical leap year calculations (1403, 1404, 1408).
+* Bidirectional conversions and inverse parity (Nowruz 1405 ➔ 2026-03-21).
 * Multi-company weekend logic and duty hours calculation.
 * Search domain translation (Shamsi query ➔ Gregorian SQL).
 * Multi-year lunar holiday overlap constraints.
+* Enterprise fiscal year boundary calculations (`get_jalali_fiscal_year_dates`).
+* Dynamic financial report period ranges (`get_jalali_period_date_range`).
+* RESTful API controller route loading and execution.
+* Multi-lingual QWeb report invoice language isolation.
 
 ---
 

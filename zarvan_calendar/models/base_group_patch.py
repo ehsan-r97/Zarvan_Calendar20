@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Pivot Table, Graph View, and Group-By Jalali Formatter - Odoo 19
+Pivot Table, Graph View, and Group-By Jalali Formatter - Odoo 20
 Translates grouped date labels in Pivot tables, Graph views, and List views
 so that grouping by month, quarter, or year shows Persian names:
 - Month: 'فروردین ۱۴۰۵' instead of 'March 2026'
@@ -46,7 +46,7 @@ class BaseModelJalaaliGroupBy(models.AbstractModel):
         lang = self.env.context.get('lang') or user.lang or ''
         mode = getattr(user, 'jalali_calendar_mode', 'shamsi') or 'shamsi'
 
-        if mode == 'gregorian' or (not lang.startswith('fa') and not user.jalali_date_format):
+        if mode == 'gregorian' or not lang.startswith('fa'):
             return result
 
         use_persian_nums = user.jalali_use_persian_numbers
@@ -133,3 +133,43 @@ class BaseModelJalaaliGroupBy(models.AbstractModel):
                     _logger.debug("Failed formatting Jalali group by: %s", str(e))
 
         return result
+
+
+class JalaaliGroupByMixin(models.AbstractModel):
+    """
+    Optional Mixin for high-precision SQL-level Persian month/year grouping in Odoo 20 & 19.
+    Provides stored indexed fields for exact Pivot aggregation without Gregorian month overlaps.
+    """
+    _name = 'jalaali.groupby.mixin'
+    _description = 'Persian Calendar Group-By Mixin'
+
+    jalali_group_year = fields.Integer(
+        string='سال خورشیدی (Group)',
+        compute='_compute_jalali_group_fields',
+        store=True,
+        index=True
+    )
+    jalali_group_month = fields.Char(
+        string='ماه خورشیدی (Group)',
+        compute='_compute_jalali_group_fields',
+        store=True,
+        index=True
+    )
+
+    @api.depends(lambda self: [f for f in ('date', 'date_order', 'invoice_date', 'create_date') if hasattr(self, '_fields') and f in self._fields])
+    def _compute_jalali_group_fields(self):
+        for rec in self:
+            dt = None
+            for fname in ('date', 'date_order', 'invoice_date', 'create_date'):
+                if hasattr(rec, fname) and getattr(rec, fname):
+                    dt = getattr(rec, fname)
+                    break
+            if dt:
+                d = dt.date() if isinstance(dt, datetime) else dt
+                jy, jm, jd = _py_gregorian_to_jalali(d.year, d.month, d.day)
+                rec.jalali_group_year = jy
+                rec.jalali_group_month = f"{jy}/{jm:02d} - {PERSIAN_MONTH_NAMES[jm - 1]}"
+            else:
+                rec.jalali_group_year = 0
+                rec.jalali_group_month = ''
+

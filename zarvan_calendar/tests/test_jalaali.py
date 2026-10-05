@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Automated Unit Tests for Zarvan Persian Calendar - Odoo 19
+Automated Unit Tests for Zarvan Persian Calendar - Odoo 20
 Run with: odoo-bin -d test_db --test-tags=zarvan_calendar --stop-after-init
 """
 
@@ -123,17 +123,14 @@ class TestJalaaliCalendar(TransactionCase):
             prefs = user.get_jalali_preferences()
             self.assertEqual(prefs['mode'], mode)
 
-    def test_08_odoo20_security_privilege_model(self):
-        """Test Odoo 19/20 privilege model and group linkage."""
-        privilege_model = self.env.get('res.groups.privilege')
-        if privilege_model:
-            privilege = self.env.ref('zarvan_calendar.privilege_jalaali_access', raise_if_not_found=False)
-            self.assertTrue(privilege, "Persian Calendar Privilege must exist in Odoo 19/20")
-            user_group = self.env.ref('zarvan_calendar.group_jalaali_user')
-            mgr_group = self.env.ref('zarvan_calendar.group_jalaali_manager')
-            self.assertEqual(user_group.privilege_id, privilege)
-            self.assertEqual(mgr_group.privilege_id, privilege)
-            self.assertIn(self.env.ref('base.user_admin'), mgr_group.user_ids)
+    def test_08_odoo20_security_groups(self):
+        """Test Odoo security groups and category linkage."""
+        user_group = self.env.ref('zarvan_calendar.group_jalaali_user')
+        mgr_group = self.env.ref('zarvan_calendar.group_jalaali_manager')
+        category = self.env.ref('zarvan_calendar.module_category_jalaali')
+        self.assertEqual(user_group.category_id, category)
+        self.assertEqual(mgr_group.category_id, category)
+        self.assertIn(self.env.ref('base.user_admin'), mgr_group.users)
 
     def test_09_qweb_report_rendering(self):
         """Test ir.qweb.field.date rendering produces valid Persian date output."""
@@ -174,8 +171,9 @@ class TestJalaaliCalendar(TransactionCase):
 
     def test_12_pure_python_standalone_engine(self):
         """Test pure Python astronomical conversion parity without external libs."""
-        from zarvan_calendar.models.jalaali_mixin import _py_jalali_to_gregorian, _py_gregorian_to_jalali
+        from ..models.jalaali_mixin import _py_jalali_to_gregorian, _py_gregorian_to_jalali
         # Nowruz 1405
+
         g1 = _py_jalali_to_gregorian(1405, 1, 1)
         self.assertEqual(g1, date(2026, 3, 21))
         j1 = _py_gregorian_to_jalali(2026, 3, 21)
@@ -193,4 +191,153 @@ class TestJalaaliCalendar(TransactionCase):
         self.assertIn('jalali_calendar_mode', session_info)
         self.assertIn('jalali_use_persian_numbers', session_info)
         self.assertIn('jalali_date_format', session_info)
+        # Check user_context injection for OWL 3 web client
+        if 'user_context' in session_info:
+            self.assertIn('jalali_calendar_mode', session_info['user_context'])
+            self.assertIn('jalali_use_persian_numbers', session_info['user_context'])
+
+    def test_14_timezone_aware_search_translation(self):
+        """Test that search queries on datetime fields respect the user's timezone."""
+        # Querying with Tehran user context (UTC+03:30)
+        domain = [('create_date', '>=', '1405-01-01 00:00:00')]
+        converted = self.env['res.partner'].with_context(tz='Asia/Tehran')._convert_jalali_domain(domain)
+        # 1405-01-01 00:00:00 in Tehran is 2026-03-20 20:30:00 UTC
+        self.assertIn('2026-03-20 20:30:00', converted[0][2])
+
+    def test_15_enterprise_fiscal_year_and_periods(self):
+        """Test Enterprise accounting fiscal year boundary and period ranges."""
+        self.company.fiscal_year_start_month = 1
+        g_start, g_end = self.company.get_jalali_fiscal_year_dates(1405)
+        self.assertEqual(g_start, date(2026, 3, 21), "Fiscal year 1405 starts on 2026-03-21")
+        self.assertEqual(g_end, date(2027, 3, 20), "Fiscal year 1405 ends on 2027-03-20")
+
+        # Test Q1 period range
+        q1 = self.service.get_jalali_period_date_range('quarter', 1405, 1)
+        self.assertEqual(q1['start_date'], date(2026, 3, 21))
+        self.assertEqual(q1['end_date'], date(2026, 6, 21))  # 1405/03/31 -> 2026-06-21
+
+    def test_16_controller_endpoints(self):
+        """Test that RESTful API controller routes are loaded and functioning."""
+        from ..controllers.jalaali_api import JalaaliApiController
+        controller = JalaaliApiController()
+
+        self.assertTrue(hasattr(controller, 'api_current'))
+        self.assertTrue(hasattr(controller, 'api_convert_g2j'))
+        self.assertTrue(hasattr(controller, 'api_convert_j2g'))
+        self.assertTrue(hasattr(controller, 'api_holidays'))
+        self.assertTrue(hasattr(controller, 'api_working_days'))
+        self.assertTrue(hasattr(controller, 'api_preferences'))
+
+    def test_17_service_helpers(self):
+        """Test JalaaliService helper methods and public mixin methods."""
+        today_data = self.service.get_today_shamsi()
+        self.assertIn('year', today_data)
+        self.assertIn('formatted', today_data)
+
+        # Test convert_g2j
+        conv_g2j = self.service.convert_g2j(2026, 3, 21)
+        self.assertEqual(conv_g2j['formatted'], '1405/01/01')
+
+        # Test convert_j2g
+        conv_j2g = self.service.convert_j2g(1405, 1, 1)
+        self.assertEqual(conv_j2g['formatted'], '2026-03-21')
+
+    def test_18_month_boundary_cron_helpers(self):
+        """Test is_first_day_of_jalali_month and is_last_day_of_jalali_month for crons."""
+        # Nowruz (1405/01/01) -> 2026-03-21
+        self.assertTrue(self.service.is_first_day_of_jalali_month(date(2026, 3, 21)))
+        self.assertFalse(self.service.is_first_day_of_jalali_month(date(2026, 3, 22)))
+
+        # Last day of Farvardin 1405 (1405/01/31) -> 2026-04-20
+        self.assertTrue(self.service.is_last_day_of_jalali_month(date(2026, 4, 20)))
+        self.assertFalse(self.service.is_last_day_of_jalali_month(date(2026, 4, 19)))
+
+    def test_19_proration_and_tax_days(self):
+        """Test subscription monthly proration and tax days elapsed calculation."""
+        res_pro = self.service.calculate_monthly_proration(1405, 1, 1, 3100.0)
+        self.assertEqual(res_pro['total_days_in_month'], 31)
+        self.assertEqual(res_pro['active_days'], 31)
+        self.assertEqual(res_pro['prorated_amount'], 3100.0)
+
+        # Start on day 16 (16 days remaining in a 31-day month)
+        res_half = self.service.calculate_monthly_proration(1405, 1, 16, 3100.0)
+        self.assertEqual(res_half['active_days'], 16)
+        self.assertEqual(res_half['prorated_amount'], 1600.0)
+
+        # Tax days elapsed
+        days_nowruz = self.service.get_moodian_tax_date_days(date(2026, 3, 21))
+        self.assertEqual(days_nowruz, 1)
+        days_day2 = self.service.get_moodian_tax_date_days(date(2026, 3, 22))
+        self.assertEqual(days_day2, 2)
+
+    def test_20_enterprise_edge_helpers(self):
+        """Test bank compact date, dual timestamp, withholding deadline and SSO days."""
+        # 1. Bank Compact 8-digit date
+        bank_d = self.service.get_bank_compact_date(date(2026, 3, 21))
+        self.assertEqual(bank_d, '14050101')
+
+        # 2. Dual timestamp format
+        dt_test = datetime(2026, 3, 21, 8, 30, 0)
+        dual_str = self.service.format_dual_timestamp(dt_test, user_tz='Asia/Tehran')
+        self.assertIn('1405/01/01', dual_str)
+        self.assertIn('2026-03-21', dual_str)
+        self.assertIn('UTC', dual_str)
+
+        # 3. Tax withholding deadline (next month's end)
+        tax_res = self.service.get_tax_withholding_deadline(1405, 1)
+        self.assertEqual(tax_res['jalali_deadline'], '1405/02/31')
+
+        # 4. Social Security Organization (SSO) month days count
+        self.assertEqual(self.service.get_sso_month_days(1405, 1), 31)
+        self.assertEqual(self.service.get_sso_month_days(1405, 7), 30)
+
+    def test_21_fiscal_closing_and_ean13(self):
+        """Test fiscal closing localized boundary and EAN-13 check digit calculator."""
+        # 1. EAN-13 check digit
+        ean = self.service.calculate_ean13_checksum('626123456789')
+        self.assertEqual(len(ean), 13)
+        self.assertTrue(ean.startswith('626123456789'))
+
+        # 2. Fiscal year 1404 closing timestamp (non-leap year, 29 Esfand)
+        closing = self.service.get_fiscal_closing_timestamp(1404, user_tz='Asia/Tehran')
+        self.assertIsNotNone(closing)
+        self.assertEqual(closing['jalali_date'], '1404/12/29 23:59:59')
+        self.assertIn('UTC', closing['utc_iso'])
+
+    def test_22_shortcuts_aging_and_labor_law(self):
+        """Test date macro shortcuts, Iranian aging buckets and Labor Law timesheet."""
+        b_date = date(2026, 3, 21) # 1405/01/01
+
+        # 1. Shortcuts
+        t_res = self.service.parse_date_shortcut('t', b_date)
+        self.assertEqual(t_res['jalali_date'], '1405/01/01')
+
+        nw_res = self.service.parse_date_shortcut('nw', b_date)
+        self.assertEqual(nw_res['jalali_date'], '1405/01/01')
+
+        m_res = self.service.parse_date_shortcut('+1m', b_date)
+        self.assertEqual(m_res['jalali_date'], '1405/02/01')
+
+        end_res = self.service.parse_date_shortcut('end', b_date)
+        self.assertEqual(end_res['jalali_date'], '1405/01/31')
+
+        # 2. Aging buckets
+        buckets = self.service.calculate_persian_aging_buckets(b_date)
+        self.assertEqual(len(buckets), 5)
+        self.assertEqual(buckets[0]['name'], 'ماه جاری')
+        self.assertEqual(buckets[0]['jalali_month_name'], 'فروردین')
+        self.assertEqual(buckets[0]['jalali_year'], 1405)
+        self.assertEqual(buckets[1]['jalali_month_name'], 'اسفند')
+        self.assertEqual(buckets[1]['jalali_year'], 1404)
+
+        # 3. Labor law calculation (10 hours worked on a weekday, 2 night hours)
+        timesheet = self.service.calculate_labor_law_timesheet(hours_worked=10.0, is_friday=False, night_hours=2.0)
+        self.assertEqual(timesheet['worked_hours'], 10.0)
+        self.assertEqual(timesheet['regular_hours'], 7.33)
+        self.assertEqual(timesheet['overtime_hours'], 2.67)
+        self.assertEqual(timesheet['night_hours'], 2.0)
+        self.assertTrue(timesheet['total_effective_hours'] > 10.0)
+
+
+
 
