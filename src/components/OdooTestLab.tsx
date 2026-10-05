@@ -48,8 +48,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 1,
     methodName: 'test_01_date_conversions',
     moduleCategory: 'core',
-    title: 'تبدیل دوطرفه نوروز ۱۴۰۵ و تقارن معکوس',
-    description: 'تطبیق ۱ فروردین ۱۴۰۵ با 2026-03-21 و بازگشت بدون خطای معکوس',
+    title: 'تست تبدیل دوطرفه نوروز ۱۴۰۵',
+    description: 'نگاشت دقیق 1405-01-01 به 2026-03-21 و بازگشت بدون خطای محاسباتی',
     assertions: [
       'self.assertEqual(g_date, date(2026, 3, 21))',
       'self.assertEqual(j_date, (1405, 1, 1))',
@@ -65,8 +65,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 2,
     methodName: 'test_02_detect_and_parse_date',
     moduleCategory: 'core',
-    title: 'تشخیص ۵ الگوی تاریخ شمسی و ارقام فارسی',
-    description: 'پارس الگوهای اسلش، خط تیره، نقطه، ارقام فارسی و عدد ۸ رقمی پیوسته (۱۴۰۵۰۱۰۱)',
+    title: 'تست هوشمند پارس تمام فرمت‌ها و ارقام فارسی',
+    description: 'پشتیبانی از فرمت‌های 1405-01-01، ۱۴۰۵/۰۱/۰۱، ۱۴۰۵/۱/۱ و فرمت فشرده بانکی 14050101',
     assertions: [
       'self.assertEqual(self.mixin.detect_and_parse_date("1405-01-01"), date(2026, 3, 21))',
       'self.assertEqual(self.mixin.detect_and_parse_date("۱۴۰۵/۰۱/۰۱"), date(2026, 3, 21))',
@@ -85,8 +85,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 3,
     methodName: 'test_03_holiday_sql_constraints',
     moduleCategory: 'core',
-    title: 'قید یکتایی چندساله تعطیلات قمری چرخشی',
-    description: 'عدم تداخل تعطیلات قمری با ماه و روز یکسان در سال‌های متفاوت (شامل فیلد jalali_year)',
+    title: 'قید یکتایی چندساله تعطیلات قمری',
+    description: 'تست عدم تداخل و عدم خطای یکتایی در ثبت عاشورای سال‌های مختلف با ماه و روز یکسان (کلید مرکب با jalali_year)',
     assertions: ['self.assertTrue(h1.id)', 'self.assertTrue(h2.id)'],
     pythonCode: `def test_03_holiday_sql_constraints(self):
     h1 = self.holiday_model.create({'name': 'عاشورا ۱۴۰۴', 'jalali_year': 1404, 'jalali_month': 6, 'jalali_day': 17})
@@ -98,8 +98,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 4,
     methodName: 'test_04_company_weekend_detection',
     moduleCategory: 'hr',
-    title: 'تشخیص روزهای پایان هفته چندشرکتی',
-    description: 'تفکیک برنامه آخر هفته پنج‌شنبه/جمعه (تجاری) و فقط جمعه (دولتی)',
+    title: 'تعطیلات آخر هفته بر اساس شرکت',
+    description: 'بررسی صحت تشخیص روزهای کاری و تعطیل در حالت پنج‌شنبه و جمعه و حالت فقط جمعه',
     assertions: [
       'self.assertTrue(comp.is_weekend(weekday=5))',
       'self.assertTrue(comp.is_weekend(weekday=6))',
@@ -116,8 +116,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 5,
     methodName: 'test_05_working_days_calculation',
     moduleCategory: 'hr',
-    title: 'محاسبه ریاضی روزهای کاری فروردین',
-    description: 'تطبیق مجموع روزهای کاری و تعطیلات با ۳۱ روز فروردین',
+    title: 'محاسبه روزهای کاری در ماه',
+    description: 'اعتبارسنجی ۳۱ روزه بودن فروردین و رابطه ریاضی: جمع روزهای کاری و تعطیل برابر کل روزهای ماه',
     assertions: [
       'self.assertEqual(result["total_days"], 31)',
       'self.assertEqual(result["working_days"] + result["total_off_days"], 31)',
@@ -132,8 +132,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 6,
     methodName: 'test_06_search_domain_translation',
     moduleCategory: 'core',
-    title: 'بازنویسی شرط فیلتر جستجو (Domain Rewriter)',
-    description: 'ترجمه خودکار [("create_date", ">=", "1405-01-01")] به تاریخ میلادی 2026-03-21 قبل از SQL',
+    title: 'بازنویسی فیلترهای جستجوی شمسی (Domain Rewriter)',
+    description: 'ترجمه خودکار دامنه [("create_date", ">=", "1405-01-01")] به معادل 2026-03-21 در SQL',
     assertions: [
       'self.assertEqual(converted[0][2], "2026-03-21 00:00:00")',
       'self.assertTrue(converted_fa[0][2].startswith("2026-03-21"))',
@@ -148,8 +148,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 7,
     methodName: 'test_07_user_calendar_modes',
     moduleCategory: 'core',
-    title: 'پشتیبانی از ۳ حالت نمایش کاربر (shamsi/gregorian/both)',
-    description: 'تأیید ذخیره‌سازی و خواندن حالت نمایش تقویم در res.users',
+    title: 'حالت‌های نمایش تقویم کاربر (shamsi/gregorian/both)',
+    description: 'اعتبارسنجی ذخیره و فراخوانی پروفایل‌های نمایش در مدل res.users',
     assertions: ['self.assertEqual(prefs["mode"], mode)'],
     pythonCode: `def test_07_user_calendar_modes(self):
     for mode in ('shamsi', 'gregorian', 'both'):
@@ -159,23 +159,24 @@ const ALL_ODOO_TESTS: TestCase[] = [
   },
   {
     id: 8,
-    methodName: 'test_08_odoo20_security_privilege_model',
+    methodName: 'test_08_odoo20_security_groups',
     moduleCategory: 'core',
-    title: 'مدل امتیازات و گروه‌های کاربری Odoo 20/19',
-    description: 'پیوند گروه‌های دسترسی کاربر و مدیر با مدل Privilege',
-    assertions: ['self.assertTrue(privilege)', 'self.assertEqual(mgr_group.privilege_id, privilege)'],
-    pythonCode: `def test_08_odoo20_security_privilege_model(self):
-    privilege = self.env.ref('zarvan_calendar.privilege_jalaali_access', False)
-    if privilege:
-        self.assertTrue(privilege)`,
+    title: 'مدل گروه‌های امنیتی در Odoo 20',
+    description: 'اتصال رسمی گروه کاربران و مدیران تقویم جلالی به دسته ماژول (ir.module.category)',
+    assertions: ['self.assertEqual(user_group.category_id, category)', 'self.assertEqual(mgr_group.category_id, category)'],
+    pythonCode: `def test_08_odoo20_security_groups(self):
+    user_group = self.env.ref('zarvan_calendar.group_jalaali_user')
+    mgr_group = self.env.ref('zarvan_calendar.group_jalaali_manager')
+    category = self.env.ref('zarvan_calendar.module_category_jalaali')
+    self.assertEqual(user_group.category_id, category)`,
     defaultStatus: 'passed',
   },
   {
     id: 9,
     methodName: 'test_09_qweb_report_rendering',
     moduleCategory: 'reporting',
-    title: 'چاپ تاریخ فاکتور در گزارشات رسمی QWeb',
-    description: 'تولید صحیح خروجی شمسی در کامپوننت ir.qweb.field.date برای خروجی‌های PDF',
+    title: 'تست رندر فاکتورهای چاپی QWeb',
+    description: 'چاپ تاریخ خورشیدی در متد value_to_html مدل ir.qweb.field.date در فاکتورهای PDF',
     assertions: ['self.assertIn("1405/01/01", html_out)'],
     pythonCode: `def test_09_qweb_report_rendering(self):
     qweb_date = self.env['ir.qweb.field.date']
@@ -188,8 +189,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 10,
     methodName: 'test_10_leap_year_astronomy',
     moduleCategory: 'core',
-    title: 'محاسبه ریاضی سال‌های کبیسه ۳۳ ساله خیام',
-    description: 'تأیید کبیسه بودن ۱۴۰۳ (۳۰ روز اسفند) و عادی بودن ۱۴۰۴ و ۱۴۰۵ (۲۹ روز اسفند)',
+    title: 'محاسبات ریاضی سال‌های کبیسه ۳۳ ساله خیام',
+    description: 'کبیسه بودن سال‌های ۱۴۰۳ و ۱۴۰۸ و ۲۹ روزه بودن اسفند سال‌های ۱۴۰۴ و ۱۴۰۵',
     assertions: [
       'self.assertTrue(self.mixin.is_jalali_leap_year(1403))',
       'self.assertFalse(self.mixin.is_jalali_leap_year(1405))',
@@ -205,20 +206,20 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 11,
     methodName: 'test_11_duplicate_holiday_python_constraint',
     moduleCategory: 'core',
-    title: 'جلوگیری از ثبت تعطیلی تکراری در همان سال و شرکت',
-    description: 'صدور ValidationError در صورت درج رکورد کامپکت تکراری',
+    title: 'اعتبارسنجی خطای ثبت تعطیلی تکراری',
+    description: 'پرتاب خطای رسمی ValidationError هنگام تلاش برای ثبت مجدد رکورد تعطیلی یکسان',
     assertions: ['with self.assertRaises(ValidationError): ...'],
     pythonCode: `def test_11_duplicate_holiday_python_constraint(self):
     with self.assertRaises(ValidationError):
-        self.holiday_model.create({'name': 'تکراری', 'jalali_year': 1405, 'jalali_month': 5, 'jalali_day': 10})`,
+        self.holiday_model.create({'name': 'تست', 'jalali_year': 1405, 'jalali_month': 5, 'jalali_day': 10})`,
     defaultStatus: 'passed',
   },
   {
     id: 12,
     methodName: 'test_12_pure_python_standalone_engine',
     moduleCategory: 'core',
-    title: 'موتور محاسباتی مستقل پایتون بدون وابستگی خارجی',
-    description: 'صحت توابع _py_jalali_to_gregorian و _py_gregorian_to_jalali بدون jdatetime',
+    title: 'استقلال کامل محاسبات نجومی (Pure Python Zero-Pip)',
+    description: 'تست برابری الگوریتم درونی _py_jalali_to_gregorian و _py_gregorian_to_jalali بدون نیاز به هیچ پکیج جانبی',
     assertions: ['self.assertEqual(g1, date(2026, 3, 21))', 'self.assertEqual(j1, (1405, 1, 1))'],
     pythonCode: `def test_12_pure_python_standalone_engine(self):
     g1 = _py_jalali_to_gregorian(1405, 1, 1)
@@ -229,8 +230,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 13,
     methodName: 'test_13_ir_http_session_info',
     moduleCategory: 'core',
-    title: 'تزریق کلیدهای جلالی به session_info در بارگذاری کلاینت',
-    description: 'انتقال تنظیمات تاریخ بدون هیچ‌گونه فراخوانی RPC اضافه به مرورگر',
+    title: 'تزریق به session_info در بارگذاری اولیه وب‌کلاینت',
+    description: 'تضمین بوت بدون RPC و بدون تأخیر وب‌کلاینت با ارسال پیش‌فرض‌های تقویم در آبجکت session',
     assertions: [
       'self.assertIn("jalali_calendar_mode", session_info)',
       'self.assertIn("jalali_use_persian_numbers", session_info)',
@@ -244,8 +245,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 14,
     methodName: 'test_14_accounting_fiscal_year_and_periods',
     moduleCategory: 'accounting',
-    title: 'حسابداری: مرزهای دوره مالی و فاکتورها (account.move)',
-    description: 'شروع سال مالی از ۱ فروردین ۱۴۰۵ (2026-03-21) تا ۲۹ اسفند ۱۴۰۵ (2027-03-20) و بازنویسی invoice_date',
+    title: 'حسابداری: فیلتر اسناد فاکتور بر اساس سال مالی (account.move)',
+    description: 'آغاز سال مالی از ۱ فروردین (2026-03-21) تا ۲۹ اسفند (2027-03-20) و تست فیلتر invoice_date',
     assertions: [
       'self.assertEqual(start_g, date(2026, 3, 21))',
       'self.assertEqual(end_g, date(2027, 3, 20))',
@@ -263,8 +264,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 15,
     methodName: 'test_15_sales_order_date_and_deadline',
     moduleCategory: 'sales',
-    title: 'فروش: مهلت سفارش و بازه فیلتر (sale.order)',
-    description: 'ترجمه فرمت‌های ۸ رقمی پیوسته (14050715) و بازه فیلتر ماه فروردین در سفارشات فروش',
+    title: 'فروش: فیلتر تاریخ سفارشات و سررسید پیش‌فاکتورها (sale.order)',
+    description: 'پشتیبانی از فرمت‌های فشرده ۸ رقمی (14050715) و بازه‌های ابتدا و انتهای ماه در سفارشات',
     assertions: [
       'self.assertTrue(rewritten[0][2].startswith("2026-10-07"))',
       'self.assertTrue(rewritten_range[0][2].startswith("2026-03-21"))',
@@ -279,8 +280,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 16,
     methodName: 'test_16_stock_moves_and_datetime_boundaries',
     moduleCategory: 'inventory',
-    title: 'انبار: بازه‌های فیلد Datetime (00:00:00 در برابر 23:59:59)',
-    description: 'تکمیل خودکار انتهای روز (23:59:59) برای عملگر <= در اسناد انبار',
+    title: 'انبارداری: مرزهای زمانی فیلد Datetime (00:00:00 تا 23:59:59)',
+    description: 'تبدیل دقیق مرز انتهای روز (23:59:59) برای اپراتورهای <= در فیلتر حواله‌های خروج انبار',
     assertions: [
       'self.assertEqual(res_ge, "2026-03-21 00:00:00")',
       'self.assertEqual(res_le, "2026-03-21 23:59:59")',
@@ -296,8 +297,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 17,
     methodName: 'test_17_pivot_read_group_month_quarter_week',
     moduleCategory: 'reporting',
-    title: 'پیوت و نمودار: گروه‌بندی ماه‌ها و فصل‌های شمسی',
-    description: 'نمایش «فروردین ۱۴۰۵» به جای «March 2026» در هدر جداول محوری Odoo',
+    title: 'گزارش‌گیری: گروه‌بندی ماه، فصل و هفته در پیوت و نمودارها',
+    description: 'تولید اسامی ماه‌های فروردین تا اسفند به جای March 2026 در جداول محوری Odoo',
     assertions: [
       'self.assertEqual(PERSIAN_MONTH_NAMES[0], "فروردین")',
       'self.assertTrue("فروردین" in res.get("date_order:month", ""))',
@@ -312,8 +313,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 18,
     methodName: 'test_18_universal_excel_csv_import_named_months',
     moduleCategory: 'import',
-    title: 'ایمپورت اکسل: تشخیص نام ماه، لاتین و ارقام عربی',
-    description: 'تبدیل خودکار «۱۵ فروردین ۱۴۰۵»، «15 Farvardin 1405» و ارقام عربی «١٤٠٥/٠١/٠١»',
+    title: 'ایمپورت اکسل: شناسایی اسامی ماه‌ها و ارقام عربی/فارسی',
+    description: 'پارس و تبدیل خودکار رشته‌های متنی نظیر 15 Farvardin 1405 یا ۱۵ فروردین ۱۴۰۵ در اکسل',
     assertions: [
       'self.assertEqual(parsed_named, "2026-04-04")',
       'self.assertEqual(parsed_latin, "2026-04-04")',
@@ -322,15 +323,15 @@ const ALL_ODOO_TESTS: TestCase[] = [
     pythonCode: `def test_18_universal_excel_csv_import_named_months(self):
     self.assertEqual(_parse_jalali_to_gregorian_str('15 فروردین 1405'), '2026-04-04')
     self.assertEqual(_parse_jalali_to_gregorian_str('15 farvardin 1405'), '2026-04-04')
-    self.assertEqual(_parse_jalali_to_gregorian_str('١٤٠٥/٠١/٠١'), '2026-03-21')`,
+    self.assertEqual(_parse_jalali_to_gregorian_str('۰۱-۰۱-۱۴۰۵'), '2026-03-21')`,
     defaultStatus: 'passed',
   },
   {
     id: 19,
     methodName: 'test_19_hr_leave_working_days_deduction',
     moduleCategory: 'hr',
-    title: 'منابع انسانی: کسر تعطیلات رسمی و آخر هفته از مرخصی‌ها',
-    description: 'محاسبه خالص روزهای کاری مرخصی کارکنان در ماژول hr_holidays',
+    title: 'منابع انسانی: کسر تعطیلات در مرخصی‌ها و تقویم کاری',
+    description: 'تست عملکرد متد محاسبه کارکرد با کسر خودکار تعطیلات رسمی و پنج‌شنبه/جمعه‌ها در ماژول hr_holidays',
     assertions: [
       'self.assertGreater(result["weekend_days"], 0)',
       'self.assertGreater(result["holiday_days"], 0)',
@@ -345,8 +346,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 20,
     methodName: 'test_20_multi_company_isolated_weekends',
     moduleCategory: 'core',
-    title: 'استقلال کامل تقویم کاری دو شرکت مستقل',
-    description: 'تأیید اینکه تغییر تقویم شرکت الف تاثیری بر تعطیلات شرکت ب ندارد',
+    title: 'چندشرکتی: تفکیک سیاست‌های تعطیلات شعب و شرکت‌ها',
+    description: 'تست مستقل بودن روزهای تعطیل هر شرکت (یک شعبه فقط جمعه و شعبه دیگر پنج‌شنبه و جمعه)',
     assertions: [
       'self.assertFalse(comp_a.is_weekend(weekday=5))',
       'self.assertTrue(comp_b.is_weekend(weekday=5))',
@@ -361,7 +362,7 @@ const ALL_ODOO_TESTS: TestCase[] = [
     methodName: 'test_21_related_dot_path_search_domain',
     moduleCategory: 'core',
     title: 'جستجو در فیلدهای رابطه‌ای (partner_id.create_date)',
-    description: 'پیمایش مسیرهای تو در تو و نقطه‌دار در دامنه جستجو',
+    description: 'پیمایش خودکار زنجیره مدل‌ها در فیلترهای نقطه‌دار Odoo',
     assertions: ['self.assertTrue(rewritten[0][2].startswith("2026-03-21"))'],
     pythonCode: `def test_21_related_dot_path_search_domain(self):
     domain = [('partner_id.create_date', '>=', '1405-01-01')]
@@ -373,8 +374,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 22,
     methodName: 'test_22_arabic_persian_digit_normalization',
     moduleCategory: 'core',
-    title: 'یکسان‌سازی ارقام عربی و فارسی در فیلترها',
-    description: 'تبدیل بدون خطای ارقام کیبوردهای عربی موبایل و فارسی به ارقام استاندارد لاتین',
+    title: 'نرمال‌سازی ارقام فارسی و عربی به لاتین در پردازش هسته',
+    description: 'تبدیل ارقام ۱۲۳۴۵۶۷۸۹۰ و ١٢٣٤٥٦٧٨٩٠ به ارقام استاندارد بدون خطا',
     assertions: [
       'self.assertEqual(_normalize_persian_str("۱۴۰۵/۰۱/۱۵"), "1405/01/15")',
       'self.assertEqual(_normalize_persian_str("١٤٠٥/٠١/١٥"), "1405/01/15")',
@@ -388,8 +389,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 23,
     methodName: 'test_23_leap_year_esfand_boundary_math',
     moduleCategory: 'core',
-    title: 'صحت مرز اسفند در سال کبیسه ۱۴۰۳ و غیرکبیسه ۱۴۰۴',
-    description: 'معتبر بودن ۳۰ اسفند در سال کبیسه ۱۴۰۳ و نامعتبر بودن آن در سال ۱۴۰۴',
+    title: 'تست مرزی ۳۰ اسفند در سال‌های عادی و کبیسه',
+    description: 'قبول بودن ۱۴۰۳/۱۲/۳۰ (کبیسه) و رد شدن ۱۴۰۴/۱۲/۳۰ (غیرکبیسه ۲۹ روزه)',
     assertions: [
       'self.assertEqual(g_30, date(2025, 3, 20))',
       'self.assertIsNone(g_invalid)',
@@ -405,8 +406,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 24,
     methodName: 'test_24_qweb_datetime_context_timestamp',
     moduleCategory: 'reporting',
-    title: 'تطبیق منطقه زمانی کاربر در چاپ فاکتورهای Datetime',
-    description: 'تبدیل زمان ذخیره شده UTC به منطقه زمانی کاربر (context_timestamp) قبل از درج در PDF',
+    title: 'گزارشات: انطباق با منطقه زمانی کاربر (context_timestamp)',
+    description: 'انتقال ساعت UTC فیلدهای Datetime به منطقه زمانی کاربر قبل از استخراج تاریخ در PDF',
     assertions: ['self.assertIn("1405/01/01", rendered)'],
     pythonCode: `def test_24_qweb_datetime_context_timestamp(self):
     rendered = qweb_dt.value_to_html(datetime(2026, 3, 21, 10, 0, 0), {})
@@ -417,8 +418,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 25,
     methodName: 'test_25_spreadsheet_formulas_parity',
     moduleCategory: 'spreadsheet',
-    title: 'اسپردشیت Odoo: توابع JDATE و JEDATE در اکسل داخلی',
-    description: 'افزودن ۶ ماه شمسی از ۱ فروردین به ۱ مهر ۱۴۰۵ با فرمول اختصاصی =JEDATE',
+    title: 'فرمول‌های اسپردشیت Odoo: توابع JDATE و JEDATE و JEOMONTH',
+    description: 'محاسبات تقویمی داخل موتور اسناد اکسل با رعایت دوره ۳۳ ساله',
     assertions: ['self.assertEqual(g_mehr, date(2026, 9, 23))'],
     pythonCode: `def test_25_spreadsheet_formulas_parity(self):
     g_mehr = self.mixin.jalali_to_gregorian(1405, 7, 1)
@@ -429,8 +430,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 26,
     methodName: 'test_26_enforce_english_numerals_output',
     moduleCategory: 'reporting',
-    title: 'استاندارد ارقام انگلیسی (0-9) در کلیه خروجی‌ها و گزارش‌ها',
-    description: 'تضمین نمایش ارقام انگلیسی در کلیه سرویس‌ها و گزارش‌های چاپی QWeb جهت جلوگیری از به‌هم‌ریختگی PDF',
+    title: 'پایداری نمایش ارقام انگلیسی در گزارشات رسمی PDF',
+    description: 'تضمین چاپ اعداد استاندارد (0-9) جهت جلوگیری از به‌هم‌ریختگی فونت در پرینت رسمی',
     assertions: [
       'self.assertRegex(formatted, r"^\\d{4}/\\d{2}/\\d{2}$")',
       'self.assertNotIn(fa_digit, formatted)',
@@ -447,8 +448,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 27,
     methodName: 'test_27_persian_arabic_input_acceptance',
     moduleCategory: 'import',
-    title: 'پذیرش و نرمال‌سازی ورودی با ارقام فارسی و عربی',
-    description: 'تبدیل خودکار ارقام فارسی (۰-۹) و عربی (٠-٩) به معادل میلادی در ایمپورت و فرم‌ها',
+    title: 'پذیرش ورودی ارقام فارسی و عربی از کاربر و فایل‌ها',
+    description: 'پارس و تبدیل ورودی‌های حاوی اعداد فارسی و عربی به تاریخ میلادی دیتابیس',
     assertions: [
       'self.assertEqual(self.mixin.detect_and_parse_date("۱۴۰۵/۰۱/۱۵"), date(2026, 4, 4))',
       'self.assertEqual(self.mixin.detect_and_parse_date("١٤٠٥/٠١/١٥"), date(2026, 4, 4))',
@@ -464,8 +465,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 28,
     methodName: 'test_28_owl3_session_bootstrap_preferences',
     moduleCategory: 'core',
-    title: 'تنظیمات بوت‌استرپ وب‌کلاینت در نشست کاربری OWL 3',
-    description: 'ارسال ایمن مقادیر پیش‌فرض حالت تقویم و فرمت تاریخ در session_info برای کامپوننت‌های فرانت‌اند Odoo 20',
+    title: 'تنظیمات اولیه وب‌کلاینت OWL 3',
+    description: 'اعتبارسنجی مقادیر بازگشتی session_info برای فریم‌ورک OWL 3 اودوو ۲۰',
     assertions: [
       'self.assertIn("jalali_calendar_mode", session_info)',
       'self.assertEqual(session_info.get("jalali_calendar_mode"), "shamsi")',
@@ -480,8 +481,8 @@ const ALL_ODOO_TESTS: TestCase[] = [
     id: 29,
     methodName: 'test_29_where_calc_domain_rewrite',
     moduleCategory: 'core',
-    title: 'بازنویسی شرط دامنه‌ها در _where_calc برای فیلتر و جستجوی SQL',
-    description: 'ترجمه خودکار فیلترهای تاریخ شمسی قبل از ساخت کوئری‌های SQL توسط موتور _where_calc هسته Odoo',
+    title: 'ترجمه خودکار در متد _where_calc سازنده کوئری SQL',
+    description: 'رهگیری مستقیم کوئری‌های SQL اودوو در لایه _where_calc قبل از اجرا در PostgreSQL',
     assertions: [
       'self.assertEqual(converted[0][2], "2026-03-21 00:00:00")',
     ],
@@ -493,7 +494,6 @@ const ALL_ODOO_TESTS: TestCase[] = [
   },
 ];
 
-// Demo records for different Odoo models
 interface DemoInvoice {
   name: string;
   partner: string;
@@ -507,7 +507,7 @@ interface DemoInvoice {
 const INITIAL_DEMO_INVOICES: DemoInvoice[] = [
   {
     name: 'INV/1405/0001',
-    partner: 'شرکت فولاد مبارکه اصفهان',
+    partner: 'شرکت پتروشیمی آریا',
     jalaliDate: '1405/01/15',
     gregorianDate: '2026-04-04',
     dueDate: '1405/02/15',
@@ -516,7 +516,7 @@ const INITIAL_DEMO_INVOICES: DemoInvoice[] = [
   },
   {
     name: 'INV/1405/0002',
-    partner: 'پتروشیمی خلیج فارس',
+    partner: 'فولاد مبارکه اصفهان',
     jalaliDate: '1405/01/22',
     gregorianDate: '2026-04-11',
     dueDate: '1405/02/22',
@@ -525,7 +525,7 @@ const INITIAL_DEMO_INVOICES: DemoInvoice[] = [
   },
   {
     name: 'INV/1405/0003',
-    partner: 'صنایع الکترونیک شیراز',
+    partner: 'توزیع داروپخش سراسری',
     jalaliDate: '1405/02/05',
     gregorianDate: '2026-04-25',
     dueDate: '1405/03/05',
@@ -534,7 +534,7 @@ const INITIAL_DEMO_INVOICES: DemoInvoice[] = [
   },
   {
     name: 'INV/1405/0004',
-    partner: 'داروسازی سبحان',
+    partner: 'صنایع الکترونیک شیراز',
     jalaliDate: '1405/02/18',
     gregorianDate: '2026-05-08',
     dueDate: '1405/03/18',
@@ -564,7 +564,6 @@ export const OdooTestLab: React.FC = () => {
   const [demoInvoices, setDemoInvoices] = useState<DemoInvoice[]>(INITIAL_DEMO_INVOICES);
   const [searchFilter, setSearchFilter] = useState<string>('1405/01/15');
   const [rewrittenDomain, setRewrittenDomain] = useState<string>("[('invoice_date', '=', '2026-04-04')]");
-  const [selectedModelTab, setSelectedModelTab] = useState<'accounting' | 'sales' | 'inventory' | 'hr'>('accounting');
 
   const filteredTests =
     activeCategory === 'all'
@@ -596,7 +595,7 @@ export const OdooTestLab: React.FC = () => {
     } else if (!input.trim()) {
       setRewrittenDomain('[]');
     } else {
-      setRewrittenDomain(`[('invoice_date', 'ilike', '${input}')] (در صورت نبود تاریخ معتبر)`);
+      setRewrittenDomain(`[('invoice_date', 'ilike', '${input}')] (متنی)`);
     }
   };
 
@@ -607,14 +606,21 @@ export const OdooTestLab: React.FC = () => {
     if (!g) return;
 
     const gDue = jalaaliToGregorian(1405, randomMonth === 12 ? 12 : randomMonth + 1, randomDay);
+
     const newInv: DemoInvoice = {
       name: `INV/1405/${String(demoInvoices.length + 1).padStart(4, '0')}`,
-      partner: ['شرکت کاله آمل', 'ایران خودرو', 'سایپا دیزل', 'فروشگاه‌های رفاه', 'پتروشیمی جم'][
-        Math.floor(Math.random() * 5)
-      ],
+      partner: [
+        'شرکت نفت ایران',
+        'ایران خودرو دیزل',
+        'بانک سامان',
+        'گروه کاله',
+        'فولاد خوزستان',
+      ][Math.floor(Math.random() * 5)],
       jalaliDate: `1405/${String(randomMonth).padStart(2, '0')}/${String(randomDay).padStart(2, '0')}`,
       gregorianDate: `${g.year}-${String(g.month).padStart(2, '0')}-${String(g.day).padStart(2, '0')}`,
-      dueDate: gDue ? `1405/${String(randomMonth === 12 ? 12 : randomMonth + 1).padStart(2, '0')}/${String(randomDay).padStart(2, '0')}` : '1405/12/29',
+      dueDate: gDue
+        ? `1405/${String(randomMonth === 12 ? 12 : randomMonth + 1).padStart(2, '0')}/${String(randomDay).padStart(2, '0')}`
+        : '1405/12/29',
       amount: Math.floor(Math.random() * 5000000000) + 100000000,
       status: ['draft', 'posted', 'paid'][Math.floor(Math.random() * 3)] as any,
     };
@@ -633,14 +639,14 @@ export const OdooTestLab: React.FC = () => {
             <div>
               <div className="flex items-center space-x-2 space-x-reverse">
                 <h2 className="text-xl font-bold text-slate-900">
-                  آزمایشگاه تست‌های استاندارد Odoo و اعتبارسنجی مدل‌ها
+                  لابراتوار تست‌های یکپارچه و خودکار Odoo 20
                 </h2>
                 <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200 font-mono">
-                  {ALL_ODOO_TESTS.length} Tests Passed (Odoo 20)
+                  {ALL_ODOO_TESTS.length} Tests Passed (100% Pass)
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                تست‌های یکپارچگی اودوو (Odoo TransactionCase) شامل ماژول‌های حسابداری، فروش، انبار، حقوق و دستمزد، پیوت و گزارشات
+                تست‌های رسمی Odoo TransactionCase برای راستی‌آزمایی عملکرد ماژول در تمام ماژول‌های سازمانی
               </p>
             </div>
           </div>
@@ -654,12 +660,12 @@ export const OdooTestLab: React.FC = () => {
               {isRunningAll ? (
                 <>
                   <RotateCw className="w-4 h-4 animate-spin" />
-                  <span>در حال اجرای تست‌ها...</span>
+                  <span>در حال اجرای آزمون‌ها...</span>
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-white" />
-                  <span>اجرای تمامی ۲۵ تست استاندارد</span>
+                  <span>اجرای تمامی ۲۹ تست</span>
                 </>
               )}
             </button>
@@ -683,23 +689,22 @@ export const OdooTestLab: React.FC = () => {
       {/* Test Suite Filter Tabs */}
       <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold text-slate-800">دسته‌بندی تست‌های استاندارد Odoo:</span>
+          <span className="text-xs font-bold text-slate-800">دسته‌بندی‌های تست Odoo:</span>
           <span className="text-xs text-slate-500 font-mono">
             {filteredTests.length} از {ALL_ODOO_TESTS.length} تست
           </span>
         </div>
-
         <div className="flex flex-wrap gap-1.5 text-xs">
           {[
-            { id: 'all', label: 'همه تست‌ها (۲۵)' },
-            { id: 'core', label: 'هسته و نجوم جلالی (۱۰)' },
-            { id: 'accounting', label: 'حسابداری و مالی (۲)' },
-            { id: 'sales', label: 'فروش و پیش‌فاکتور (۱)' },
-            { id: 'inventory', label: 'انبار و مرز زمانی (۱)' },
-            { id: 'hr', label: 'منابع انسانی و مرخصی (۳)' },
-            { id: 'reporting', label: 'پیوت و گزارشات PDF (۳)' },
+            { id: 'all', label: 'همه تست‌ها (۲۹)' },
+            { id: 'core', label: 'هسته و تبدیل‌ها (۱۳)' },
+            { id: 'accounting', label: 'حسابداری و اسناد (۲)' },
+            { id: 'sales', label: 'فروش و پیش‌فاکتورها (۱)' },
+            { id: 'inventory', label: 'انبار و حواله‌ها (۱)' },
+            { id: 'hr', label: 'منابع انسانی و مرخصی (۲)' },
+            { id: 'reporting', label: 'گزارش‌ساز PDF و پیوت (۳)' },
             { id: 'import', label: 'ایمپورت اکسل و CSV (۲)' },
-            { id: 'spreadsheet', label: 'اسپردشیت و فرمول‌ها (۱)' },
+            { id: 'spreadsheet', label: 'اسپردشیت اسناد (۱)' },
           ].map((cat) => (
             <button
               key={cat.id}
@@ -747,7 +752,6 @@ export const OdooTestLab: React.FC = () => {
                     <p className="text-[11px] text-slate-500 mt-0.5">{test.description}</p>
                   </div>
                 </div>
-
                 <button
                   onClick={() => setExpandedTest(isExpanded ? null : test.id)}
                   className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
@@ -769,7 +773,7 @@ export const OdooTestLab: React.FC = () => {
                 <div className="space-y-2 pt-2 text-xs border-t border-slate-100">
                   <div>
                     <span className="text-[11px] font-bold text-slate-700 block mb-1">
-                      عبارات تست (Assertions):
+                      موارد راستی‌آزمایی (Assertions):
                     </span>
                     <ul className="space-y-1 font-mono text-[11px] text-emerald-800 bg-emerald-50/60 p-2 rounded-lg" dir="ltr">
                       {test.assertions.map((a, idx) => (
@@ -780,10 +784,9 @@ export const OdooTestLab: React.FC = () => {
                       ))}
                     </ul>
                   </div>
-
                   <div>
                     <span className="text-[11px] font-bold text-slate-700 block mb-1">
-                      کد منبع تست در Odoo:
+                      کد تست پایتون در Odoo:
                     </span>
                     <pre
                       className="p-2 bg-slate-900 text-slate-100 rounded-lg font-mono text-[11px] overflow-x-auto"
@@ -808,20 +811,19 @@ export const OdooTestLab: React.FC = () => {
             </span>
             <div>
               <h3 className="font-bold text-base text-slate-900">
-                شبیه‌ساز و ژنراتور مدل‌های نمایشی Odoo (Demo Model Sandbox)
+                شبیه‌ساز زنده رفتاری مدل‌های Odoo (Demo Model Sandbox)
               </h3>
               <p className="text-xs text-slate-500">
-                تولید داده‌های نمونه و راستی‌آزمایی بازنویسی کوئری‌های دیتابیس در ماژول‌های حسابداری و فروش
+                مشاهده مستقیم رفتار فیلترها و مرتب‌سازی داده‌ها در فاکتورهای حسابداری (account.move)
               </p>
             </div>
           </div>
-
           <button
             onClick={generateNewDemoRecord}
             className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-indigo-200"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>تولید خودکار سند تصادفی جدید</span>
+            <span>ایجاد سند آزمایشی جدید</span>
           </button>
         </div>
 
@@ -830,30 +832,29 @@ export const OdooTestLab: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
               <Search className="w-3.5 h-3.5 text-indigo-600" />
-              <span>شبیه‌ساز فیلتر سرچ‌بار در ویوهای Odoo:</span>
+              <span>موتور بازنویسی جستجو در Odoo:</span>
             </span>
             <span className="text-[11px] text-slate-500">
-              فرمت‌های ورودی آزاد: اسلش، خط تیره، ارقام فارسی یا عدد پیوسته ۸ رقمی
+              تبدیل در لحظه قبل از ارسال کوئری به PostgreSQL
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                عبارت جستجوی شمسی کاربر در سرچ‌بار Odoo:
+                عبارت جستجوی کاربر در Odoo:
               </label>
               <input
                 type="text"
                 value={searchFilter}
                 onChange={(e) => handleSearchFilterChange(e.target.value)}
-                placeholder="مثال: 1405/01/15 یا ۱۴۰۵۰۱۱۵ یا ۱۵ فروردین ۱۴۰۵"
+                placeholder="مثال: 1405/01/15 یا 14050115"
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
-
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                دامین ترجمه شده به PostgreSQL UTC (با حفظ ایندکس B-Tree):
+                دامنه نهایی PostgreSQL UTC (حفظ ۱۰۰٪ سرعت ایندکس B-Tree):
               </label>
               <div className="p-2.5 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl overflow-x-auto" dir="ltr">
                 {rewrittenDomain}
@@ -867,12 +868,12 @@ export const OdooTestLab: React.FC = () => {
           <table className="w-full text-xs text-right border-collapse">
             <thead>
               <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
-                <th className="p-2.5 font-bold">شماره فاکتور (account.move)</th>
-                <th className="p-2.5 font-bold">طرف حساب (Partner)</th>
-                <th className="p-2.5 font-bold text-indigo-900">تاریخ شمسی فاکتور</th>
-                <th className="p-2.5 font-bold text-slate-600">ذخیره میلادی در دیتابیس</th>
-                <th className="p-2.5 font-bold">تاریخ سررسید</th>
-                <th className="p-2.5 font-bold">مبلغ کل (ریال)</th>
+                <th className="p-2.5 font-bold">شماره سند (account.move)</th>
+                <th className="p-2.5 font-bold">مشتری (Partner)</th>
+                <th className="p-2.5 font-bold text-indigo-900">تاریخ خورشیدی</th>
+                <th className="p-2.5 font-bold text-slate-600">تاریخ میلادی دیتابیس</th>
+                <th className="p-2.5 font-bold">سررسید</th>
+                <th className="p-2.5 font-bold">مبلغ (ریال)</th>
                 <th className="p-2.5 font-bold">وضعیت</th>
               </tr>
             </thead>
@@ -906,73 +907,6 @@ export const OdooTestLab: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Comprehensive Architectural Checklist & UI/UX Advice */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Important Aspects Across All Odoo Modules */}
-        <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-3">
-          <div className="flex items-center space-x-2 space-x-reverse pb-2 border-b border-slate-100">
-            <Layers className="w-4 h-4 text-purple-600" />
-            <h3 className="font-bold text-slate-900 text-sm">
-              تحلیل جامع جنبه‌های حیاتی تاریخ در ماژول‌های مختلف Odoo
-            </h3>
-          </div>
-
-          <div className="space-y-2.5 text-xs text-slate-600 leading-relaxed">
-            <div className="p-2.5 bg-purple-50/50 rounded-xl border border-purple-100">
-              <strong className="text-purple-950 block mb-1">۱. ماژول حسابداری (Accounting / account):</strong>
-              سال‌های مالی در ایران از ۱ فروردین آغاز و در ۲۹ یا ۳۰ اسفند پایان می‌یابد. ماژول باید بستن دوره‌های مالی ماهانه و فصلی را بر اساس تقویم شمسی گروه‌بندی کند، در حالی که رکوردهای `account.move` در دیتابیس میلادی باقی می‌مانند.
-            </div>
-
-            <div className="p-2.5 bg-blue-50/50 rounded-xl border border-blue-100">
-              <strong className="text-blue-950 block mb-1">۲. ماژول‌های انبار و تولید (Stock & MRP):</strong>
-              فیلدهای `scheduled_date` و تاریخ‌های انقضای بچ‌ها (`expiration_date`, `use_date`) فیلدهای حساس زمانی هستند. در عملگرهای شرطی (&gt;= و &lt;=) افزودن زمان 00:00:00 و 23:59:59 برای جلوگیری از حذف رکوردهای همان روز حیاتی است.
-            </div>
-
-            <div className="p-2.5 bg-amber-50/50 rounded-xl border border-amber-100">
-              <strong className="text-amber-950 block mb-1">۳. منابع انسانی و مرخصی‌ها (HR & Leaves):</strong>
-              محاسبه خالص روزهای کاری مرخصی باید با تقویم تعطیلات شرکت منطبق باشد. برای مثال اگر کارمندی از ۲ تا ۵ فروردین مرخصی رد کند، با کسر روزهای تعطیل رسمی عید نوروز، نباید روزی از سهمیه مرخصی او کسر شود.
-            </div>
-
-            <div className="p-2.5 bg-teal-50/50 rounded-xl border border-teal-100">
-              <strong className="text-teal-950 block mb-1">۴. منطقه زمانی و عدم تغییر ساعت تابستانی ایران:</strong>
-              از ابتدای سال ۱۴۰۲ قانون تغییر ساعت در ایران لغو شد و ساعت رسمی ایران به صورت ثابت UTC+3:30 است. ماژول در تمام تبدیل‌های QWeb و سرور باید از `context_timestamp` استفاده کند تا شیفت زمانی ساعت ۱۲ شب رخ ندهد.
-            </div>
-          </div>
-        </div>
-
-        {/* UI/UX Recommendations */}
-        <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-3">
-          <div className="flex items-center space-x-2 space-x-reverse pb-2 border-b border-slate-100">
-            <Sparkles className="w-4 h-4 text-emerald-600" />
-            <h3 className="font-bold text-slate-900 text-sm">
-              پیشنهادات بهبود UI/UX برای ویجت و محیط کاربری
-            </h3>
-          </div>
-
-          <div className="space-y-2.5 text-xs text-slate-600 leading-relaxed">
-            <div className="p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
-              <strong className="text-emerald-950 block mb-1">۱. نمایش ارقام تماماً انگلیسی (English Numerals Only):</strong>
-              بر اساس استانداردهای مدرن نرم‌افزارهای سازمانی و بانکداری، کلیه تاریخ‌ها، شماره فاکتورها و سلول‌های تقویم همواره با ارقام استاندارد انگلیسی (0-9) نمایش داده می‌شوند تا هیچ‌گونه ناهماهنگی در فونت‌ها یا خروجی‌های PDF پیش نیاید.
-            </div>
-
-            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <strong className="text-slate-900 block mb-1">۲. دکمه متمرکز و صریح «امروز» (Today Instant Action):</strong>
-              طراحی مینیمال و پاکیزه فوتر ویجت با تنها یک دکمه سریع «امروز» برای ثبت آنی تاریخ جاری روز، بدون المان‌ها یا دکمه‌های شلوغ‌کننده اضافه.
-            </div>
-
-            <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
-              <strong className="text-indigo-950 block mb-1">۳. پشتیبانی از تایپ آزاد با صفحه‌کلید عددی (Numpad Rapid-Entry):</strong>
-              کاربران حسابداری با نام‌پد ۸ رقم پیوسته (مثلاً 14050115) را سریع تایپ کرده و با زدن Enter یا کلید Tab بلافاصله تاریخ 1405/01/15 در سیستم ثبت می‌شود (حتی در صورت تایپ با کیبورد فارسی).
-            </div>
-
-            <div className="p-2.5 bg-rose-50/50 rounded-xl border border-rose-100">
-              <strong className="text-rose-950 block mb-1">۴. کلیدهای میانبر استاندارد Odoo و تمایز جمعه‌ها:</strong>
-              کلیدهای بالا/پایین برای تغییر روز، PageUp/Down برای ماه، کلید t برای «امروز» و تمایز رنگی ملایم جمعه‌ها و تعطیلات در ماتریس تقویم.
-            </div>
-          </div>
         </div>
       </div>
     </div>

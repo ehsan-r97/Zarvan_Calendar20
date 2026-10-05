@@ -1,4 +1,4 @@
-/* Zarvan Persian Calendar styles for Odoo 20 Backend */
+/* Zarvan Persian Calendar styles for Odoo 20 Enterprise & Community Backend */
 .o_jalali_date_picker {
     position: relative;
     width: 100%;
@@ -9,4 +9,17 @@
     background: #ffffff;
     z-index: 1050;
     border-radius: 8px;
+    max-width: calc(100vw - 20px);
+}
+
+.o_zarvan_today_systray .dropdown-menu,
+.o_zarvan_today_systray > div {
+    max-width: calc(100vw - 20px);
+}
+
+@media (max-width: 576px) {
+    .o_zarvan_today_systray button {
+        padding: 2px 8px !important;
+        font-size: 11px !important;
+    }
 }

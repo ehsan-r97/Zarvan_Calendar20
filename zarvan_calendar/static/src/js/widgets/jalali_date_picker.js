@@ -1,14 +1,19 @@
 /** @odoo-module **/
 
-import { Component, useState, onMounted, onWillUnmount } from "@odoo/owl";
+import { Component, useState, onMounted, onWillUnmount, onWillUpdateProps, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 import { useService } from "@web/core/utils/hooks";
+import { user } from "@web/core/user";
+import { session } from "@web/session";
 
 /**
  * Jalali Date Picker Widget - Odoo 20
- * Production OWL 3 component with responsive Bottom-Sheet and zero-RPC conversions.
- * Always renders English numerals (0-9) while accepting Persian/Arabic input.
+ * Production OWL 3 component with:
+ * - Proper useRef DOM encapsulation (No legacy this.el)
+ * - onWillUpdateProps reactivity for Form view record pager transitions
+ * - Luxon DateTime compatibility on record.update
+ * - Responsive mobile Bottom-Sheet drawer
  */
 export class JalaliDatePicker extends Component {
     static template = "zarvan_calendar.JalaliDatePicker";
@@ -16,8 +21,8 @@ export class JalaliDatePicker extends Component {
         ...standardFieldProps,
     };
 
-    setup(props) {
-        this.props = props || this.props;
+    setup() {
+        this.rootRef = useRef("root");
         try {
             this.uiService = useService("ui");
         } catch (e) {
@@ -33,16 +38,21 @@ export class JalaliDatePicker extends Component {
         });
 
         this.monthNames = [
-            'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-            'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+            'فروردین (۱)', 'اردیبهشت (۲)', 'خرداد (۳)', 'تیر (۴)', 'مرداد (۵)', 'شهریور (۶)',
+            'مهر (۷)', 'آبان (۸)', 'آذر (۹)', 'دی (۱۰)', 'بهمن (۱۱)', 'اسفند (۱۲)'
         ];
 
         this.weekdays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
         this.boundOnDocumentClick = this.onDocumentClick.bind(this);
 
         onMounted(() => {
-            this.parseInitialValue();
+            this.parseValue(this.props);
             document.addEventListener('click', this.boundOnDocumentClick);
+        });
+
+        // OWL 3 reactivity: Update when moving between records in Form view
+        onWillUpdateProps((nextProps) => {
+            this.parseValue(nextProps);
         });
 
         onWillUnmount(() => {
@@ -61,27 +71,45 @@ export class JalaliDatePicker extends Component {
         this.state.isOpen = false;
     }
 
-    parseInitialValue() {
-        if (this.props.record.data[this.props.name]) {
-            const val = this.props.record.data[this.props.name];
-            const gDateStr = typeof val === 'string' ? val : (val.toISODate ? val.toISODate() : '');
-            if (gDateStr) {
-                const parts = gDateStr.split('-');
-                if (parts.length === 3) {
-                    const jDate = this.gregorianToJalali(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
-                    if (jDate) {
-                        this.state.currentYear = jDate.year;
-                        this.state.currentMonth = jDate.month;
-                        this.state.selectedDate = `${jDate.year}/${String(jDate.month).padStart(2, '0')}/${String(jDate.day).padStart(2, '0')}`;
-                        this.state.persianDisplay = this.state.selectedDate;
-                    }
+    parseValue(props) {
+        const record = props?.record;
+        const name = props?.name;
+        if (!record || !record.data) return;
+
+        const val = record.data[name];
+        if (!val) {
+            this.state.selectedDate = null;
+            this.state.persianDisplay = '';
+            return;
+        }
+
+        // Handles Luxon DateTime instance, standard Date, or ISO string
+        let gDateStr = '';
+        if (typeof val === 'string') {
+            gDateStr = val.substring(0, 10);
+        } else if (val.toISODate) {
+            gDateStr = val.toISODate();
+        } else if (val instanceof Date) {
+            gDateStr = val.toISOString().substring(0, 10);
+        }
+
+        if (gDateStr) {
+            const parts = gDateStr.split('-');
+            if (parts.length === 3) {
+                const jDate = this.gregorianToJalali(parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2], 10));
+                if (jDate) {
+                    this.state.currentYear = jDate.year;
+                    this.state.currentMonth = jDate.month;
+                    this.state.selectedDate = `${jDate.year}/${String(jDate.month).padStart(2, '0')}/${String(jDate.day).padStart(2, '0')}`;
+                    this.state.persianDisplay = this.formatFormattedDate(jDate.year, jDate.month, jDate.day, gDateStr);
                 }
             }
         }
     }
 
     onDocumentClick(ev) {
-        if (this.state.isOpen && !this.el?.contains(ev.target)) {
+        // Safe OWL 3 DOM check via this.rootRef.el
+        if (this.state.isOpen && this.rootRef.el && !this.rootRef.el.contains(ev.target)) {
             this.state.isOpen = false;
         }
     }
@@ -159,14 +187,41 @@ export class JalaliDatePicker extends Component {
             this.clearDate();
             return;
         }
-        const toLatin = (s) => {
-            const map = {
-                '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
-                '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
-            };
-            return String(s).replace(/[۰-۹٠-٩]/g, (w) => map[w] || w);
-        };
-        const latinStr = window.__zarvan ? window.__zarvan.toLatinDigits(inputVal.trim()) : toLatin(inputVal.trim());
+
+        const lowerRaw = inputVal.trim().toLowerCase();
+        if (['t', 'today', 'امروز'].includes(lowerRaw)) {
+            this.selectToday();
+            return;
+        }
+        if (['nw', 'nowruz', 'نوروز'].includes(lowerRaw)) {
+            this.state.currentMonth = 1;
+            this.selectDay(1);
+            return;
+        }
+        if (['end', 'پایان', 'e'].includes(lowerRaw)) {
+            const maxDays = (this.state.currentMonth <= 6) ? 31 : (this.state.currentMonth <= 11 ? 30 : (this.isLeapJalaliYear(this.state.currentYear) ? 30 : 29));
+            this.selectDay(maxDays);
+            return;
+        }
+        if (['start', 'شروع', 's'].includes(lowerRaw)) {
+            this.selectDay(1);
+            return;
+        }
+        const mMatch = lowerRaw.match(/^([+-]?\d+)\s*(?:m|ماه|م)$/);
+        if (mMatch) {
+            const deltaM = parseInt(mMatch[1], 10);
+            this.changeMonth(deltaM);
+            return;
+        }
+        const dMatch = lowerRaw.match(/^([+-]\d+)\s*(?:d|روز|ر)?$/);
+        if (dMatch) {
+            const deltaD = parseInt(dMatch[1], 10);
+            this.stepDay(deltaD);
+            return;
+        }
+
+        const latinStr = window.__zarvan ? window.__zarvan.toLatinDigits(inputVal.trim()) : inputVal.trim();
+
         let y = null, m = null, d = null;
         const m1 = latinStr.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
         if (m1) {
@@ -179,13 +234,6 @@ export class JalaliDatePicker extends Component {
                 y = parseInt(m2[1], 10);
                 m = parseInt(m2[2], 10);
                 d = parseInt(m2[3], 10);
-            } else {
-                const m3 = latinStr.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
-                if (m3) {
-                    d = parseInt(m3[1], 10);
-                    m = parseInt(m3[2], 10);
-                    y = parseInt(m3[3], 10);
-                }
             }
         }
 
@@ -194,7 +242,7 @@ export class JalaliDatePicker extends Component {
             this.state.currentMonth = m;
             this.selectDay(d);
         } else {
-            this.state.persianDisplay = this.state.selectedDate || '';
+            this.state.persianDisplay = this.formatDisplayNumber(this.state.selectedDate || '');
         }
     }
 
@@ -208,7 +256,7 @@ export class JalaliDatePicker extends Component {
         let m = parseInt(parts[1], 10);
         let d = parseInt(parts[2], 10) + delta;
 
-        const maxDays = this.getDaysInJalaliMonth(y, m);
+        const maxDays = (m <= 6) ? 31 : (m <= 11 ? 30 : (this.isLeapJalaliYear(y) ? 30 : 29));
         if (d > maxDays) {
             d = 1;
             m += 1;
@@ -222,7 +270,7 @@ export class JalaliDatePicker extends Component {
                 m = 12;
                 y -= 1;
             }
-            d = this.getDaysInJalaliMonth(y, m);
+            d = (m <= 6) ? 31 : (m <= 11 ? 30 : (this.isLeapJalaliYear(y) ? 30 : 29));
         }
         this.state.currentYear = y;
         this.state.currentMonth = m;
@@ -253,16 +301,58 @@ export class JalaliDatePicker extends Component {
         }
     }
 
+    getUserCalendarMode() {
+        return session?.jalali_calendar_mode || user?.context?.jalali_calendar_mode || user?.jalali_calendar_mode || 'shamsi';
+    }
+
+    getUserDateFormat() {
+        return session?.jalali_date_format || user?.context?.jalali_date_format || user?.jalali_date_format || 'YYYY/MM/DD';
+    }
+
+    formatFormattedDate(jy, jm, jd, gDateStr = '') {
+        const fmt = this.getUserDateFormat();
+        const yStr = String(jy);
+        const mStr = String(jm).padStart(2, '0');
+        const dStr = String(jd).padStart(2, '0');
+        let jStr = fmt.replace('YYYY', yStr).replace('MM', mStr).replace('DD', dStr);
+        if (this.usePersianNumbers() && window.__zarvan?.toPersianDigits) {
+            jStr = window.__zarvan.toPersianDigits(jStr);
+        }
+        const mode = this.getUserCalendarMode();
+        if (mode === 'gregorian') {
+            return gDateStr || '';
+        }
+        if (mode === 'both' && gDateStr) {
+            return `${jStr} (${gDateStr})`;
+        }
+        return jStr;
+    }
+
+    usePersianNumbers() {
+        return Boolean(
+            session?.jalali_use_persian_numbers ||
+            user?.context?.jalali_use_persian_numbers ||
+            user?.jalali_use_persian_numbers ||
+            window.odoo?.__session_info__?.jalali_use_persian_numbers
+        );
+    }
+
+    formatDisplayNumber(val) {
+        if (this.usePersianNumbers() && window.__zarvan && window.__zarvan.toPersianDigits) {
+            return window.__zarvan.toPersianDigits(val);
+        }
+        return val;
+    }
+
     formatDayNumber(d) {
-        // Odoo always displays English numerals (0-9)
-        return d;
+        return this.formatDisplayNumber(d);
     }
 
     get firstWeekdayOffset() {
         const gDate = this.jalaliToGregorian(this.state.currentYear, this.state.currentMonth, 1);
         if (!gDate) return 0;
-        const jsDate = new Date(gDate.year, gDate.month - 1, gDate.day);
-        const day = jsDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        const jsDate = new Date(Date.UTC(gDate.year, gDate.month - 1, gDate.day));
+        const day = jsDate.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
         return (day + 1) % 7; // Saturday=0 ... Friday=6
     }
 
@@ -292,53 +382,92 @@ export class JalaliDatePicker extends Component {
     selectDay(day) {
         const jStr = `${this.state.currentYear}/${String(this.state.currentMonth).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
         this.state.selectedDate = jStr;
-        this.state.persianDisplay = jStr;
         this.state.isOpen = false;
 
-        // Convert to ISO Gregorian Date for Odoo ORM Field
+        // Convert to Gregorian
         const g = this.jalaliToGregorian(this.state.currentYear, this.state.currentMonth, day);
         if (g) {
-            const gStr = `${g.year}-${String(g.month).padStart(2, '0')}-${String(g.day).padStart(2, '0')}`;
+            const gIso = `${g.year}-${String(g.month).padStart(2, '0')}-${String(g.day).padStart(2, '0')}`;
+            this.state.persianDisplay = this.formatFormattedDate(this.state.currentYear, this.state.currentMonth, day, gIso);
             const field = this.props.record.fields ? this.props.record.fields[this.props.name] : null;
-            let finalVal = gStr;
+
+            // In modern Odoo 18/19/20, records store Luxon DateTime instances
+            let luxonValue = null;
+            const LuxonDateTime = window.luxon?.DateTime;
+
             if (field && field.type === 'datetime') {
                 const currentVal = this.props.record.data[this.props.name];
-                let timePart = "00:00:00";
-                if (currentVal) {
-                    if (typeof currentVal === 'string' && currentVal.includes(' ')) {
-                        timePart = currentVal.split(' ')[1];
-                    } else if (currentVal.toFormat) {
-                        timePart = currentVal.toFormat('HH:mm:ss');
-                    }
+                let h = 0, m = 0, s = 0;
+                if (currentVal && typeof currentVal === 'object' && currentVal.hour !== undefined) {
+                    h = currentVal.hour;
+                    m = currentVal.minute;
+                    s = currentVal.second;
                 }
-                finalVal = `${gStr} ${timePart}`;
+                if (LuxonDateTime) {
+                    luxonValue = LuxonDateTime.fromObject({ year: g.year, month: g.month, day: g.day, hour: h, minute: m, second: s });
+                } else {
+                    luxonValue = `${gIso} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                }
+            } else {
+                if (LuxonDateTime) {
+                    luxonValue = LuxonDateTime.fromObject({ year: g.year, month: g.month, day: g.day });
+                } else {
+                    luxonValue = gIso;
+                }
             }
-            this.props.record.update({ [this.props.name]: finalVal });
+
+            this.props.record.update({ [this.props.name]: luxonValue });
         }
     }
 
     // Mathematical Jalali Conversion Routines
     isLeapJalaliYear(jy) {
-        if (window.__zarvan && window.__zarvan.isLeapJalaliYear) {
-            return window.__zarvan.isLeapJalaliYear(jy);
+        const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210,
+            1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+        let bl = breaks.length, jp = breaks[0], jm, jump, leap, n, i;
+        if (jy < jp || jy >= breaks[bl - 1]) return false;
+        for (i = 1; i < bl; i += 1) {
+            jm = breaks[i];
+            jump = jm - jp;
+            if (jy < jm) break;
+            jp = jm;
         }
-        return [1, 5, 9, 13, 17, 22, 26, 30].includes(jy % 33);
+        n = jy - jp;
+        if (jump - n < 6) n = n - jump + ((jump + 4) >> 2) * 4;
+        leap = (((n + 1) % 33) - 1) % 4;
+        if (leap === -1) leap = 4;
+        return leap === 0;
     }
 
     jalaliToGregorian(jy, jm, jd) {
         if (window.__zarvan && window.__zarvan.jalaliToGregorian) {
             return window.__zarvan.jalaliToGregorian(jy, jm, jd);
         }
-        let gy = jy + 621;
-        let days = (jm <= 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186) + jd - 1;
-        let g_day_no = days + 20;
-        const leap = (gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0;
-        const g_days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210,
+            1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+        let bl = breaks.length, jp = breaks[0], jm_break, jump, leap, n, i;
+        let march;
+        if (jy < jp || jy >= breaks[bl - 1]) return null;
+        for (i = 1; i < bl; i += 1) {
+            jm_break = breaks[i];
+            jump = jm_break - jp;
+            if (jy < jm_break) break;
+            jp = jm_break;
+        }
+        n = jy - jp;
+        if (jump - n < 6) n = n - jump + ((jump + 4) >> 2) * 4;
+        leap = (((n + 1) % 33) - 1) % 4;
+        if (leap === -1) leap = 4;
+        const gy = jy + 621;
+        march = 20 + ((jump - n < 6 ? 1 : 0) + (leap === 0 ? 1 : 0));
+        const days = (jm <= 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186) + jd - 1;
+        let g_day_no = days + march;
+        const g_days_in_month = [31, (gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0 ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         let gm = 3;
-        while (g_day_no > g_days[gm - 1]) {
-            g_day_no -= g_days[gm - 1];
+        while (g_day_no > g_days_in_month[gm - 1]) {
+            g_day_no -= g_days_in_month[gm - 1];
             gm++;
-            if (gm > 12) { gm = 1; gy++; }
+            if (gm > 12) { gm = 1; break; }
         }
         return { year: gy, month: gm, day: g_day_no };
     }
@@ -370,3 +499,4 @@ export const jalaliDatePicker = {
 };
 
 registry.category("fields").add("jalali_date", jalaliDatePicker);
+registry.category("fields").add("jalali_datetime", jalaliDatePicker);

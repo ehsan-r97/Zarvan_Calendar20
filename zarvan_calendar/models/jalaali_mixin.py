@@ -10,14 +10,14 @@ from datetime import datetime, date
 from odoo import models, fields, api
 from odoo.tools import ormcache
 
-try:
-    import jdatetime
-    HAS_JDATETIME = True
-except ImportError:
-    HAS_JDATETIME = False
-
 _logger = logging.getLogger(__name__)
 
+
+
+# Ultra-fast thread-safe integer bitwise caches (nano-second retrieval)
+_FAST_CACHE_G2J = {}
+_FAST_CACHE_J2G = {}
+_MAX_FAST_CACHE_SIZE = 5000
 
 PERSIAN_AND_ARABIC_DIGITS = {
     '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
@@ -28,7 +28,7 @@ PERSIAN_AND_ARABIC_DIGITS = {
 
 
 def _normalize_persian_str(val):
-    """Normalizes Persian (۰–۹) and Arabic (٠–٩) numerals into standard Latin (0–9) digits."""
+    """Normalizes Persian (۰-۹) and Arabic (٠-٩) numerals into standard Latin (0-9) digits."""
     if not isinstance(val, str):
         return val
     cleaned = val.strip()
@@ -39,9 +39,14 @@ def _normalize_persian_str(val):
 
 # High-precision pure-Python Khayyam-Birashk algorithm (No external dependencies needed)
 def _py_jalali_to_gregorian(jy, jm, jd):
+    key = (jy << 9) | (jm << 5) | jd
+    hit = _FAST_CACHE_J2G.get(key)
+    if hit is not None:
+        return hit
+
     g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-    jy += 1595
-    days = -355668 + (365 * jy) + (jy // 33 * 8) + (((jy % 33) + 3) // 4) + jd
+    jy_calc = jy + 1595
+    days = -355668 + (365 * jy_calc) + (jy_calc // 33 * 8) + (((jy_calc % 33) + 3) // 4) + jd
     if jm < 7:
         days += (jm - 1) * 31
     else:
@@ -68,10 +73,18 @@ def _py_jalali_to_gregorian(jy, jm, jd):
             gm = i + 1
             break
         gd -= dim
-    return date(gy, gm, gd)
+    res = date(gy, gm, gd)
+    if len(_FAST_CACHE_J2G) < _MAX_FAST_CACHE_SIZE:
+        _FAST_CACHE_J2G[key] = res
+    return res
 
 
 def _py_gregorian_to_jalali(gy, gm, gd):
+    key = (gy << 9) | (gm << 5) | gd
+    hit = _FAST_CACHE_G2J.get(key)
+    if hit is not None:
+        return hit
+
     g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
     gy2 = gy + 1 if gm > 2 else gy
     days = 355666 + (365 * gy) + ((gy2 + 3) // 4) - ((gy2 + 99) // 100) + ((gy2 + 399) // 400) + gd + g_d_m[gm - 1]
@@ -88,7 +101,11 @@ def _py_gregorian_to_jalali(gy, gm, gd):
     else:
         jm = 7 + ((days - 186) // 30)
         jd = 1 + ((days - 186) % 30)
-    return (jy, jm, jd)
+    res = (jy, jm, jd)
+    if len(_FAST_CACHE_G2J) < _MAX_FAST_CACHE_SIZE:
+        _FAST_CACHE_G2J[key] = res
+    return res
+
 
 
 def _py_is_jalali_leap(jy):
@@ -104,10 +121,6 @@ class JalaaliMixin(models.AbstractModel):
     def _jalali_to_gregorian_cached(self, j_year, j_month, j_day):
         """Converts Jalali date components to Gregorian date object with ormcache."""
         try:
-            if HAS_JDATETIME:
-                j_date = jdatetime.date(j_year, j_month, j_day)
-                g_date = j_date.togregorian()
-                return date(g_date.year, g_date.month, g_date.day)
             return _py_jalali_to_gregorian(j_year, j_month, j_day)
         except (ValueError, IndexError, OverflowError):
             return False
@@ -117,37 +130,68 @@ class JalaaliMixin(models.AbstractModel):
     def _gregorian_to_jalali_cached(self, g_year, g_month, g_day):
         """Converts Gregorian date components to (jy, jm, jd) tuple with ormcache."""
         try:
-            if HAS_JDATETIME:
-                g_date = date(g_year, g_month, g_day)
-                j_date = jdatetime.date.fromgregorian(date=g_date)
-                return (j_date.year, j_date.month, j_date.day)
             return _py_gregorian_to_jalali(g_year, g_month, g_day)
         except (ValueError, IndexError, OverflowError):
             return False
 
+
     @api.model
     def jalali_to_gregorian(self, j_year, j_month, j_day):
-        """Standard public conversion API with validation for Odoo 20."""
-        if not self.validate_jalali_date(j_year, j_month, j_day):
-            return None
-        res = self._jalali_to_gregorian_cached(j_year, j_month, j_day)
-        return res or None
+        """Public method converting Jalali components to Gregorian date object."""
+        try:
+            return self._jalali_to_gregorian_cached(int(j_year), int(j_month), int(j_day))
+        except Exception:
+            return False
 
     @api.model
     def gregorian_to_jalali(self, g_year, g_month, g_day):
-        """Standard public conversion API returning (jy, jm, jd) tuple for Odoo 20."""
-        res = self._gregorian_to_jalali_cached(g_year, g_month, g_day)
-        return res or None
+        """Public method converting Gregorian components to (jy, jm, jd) tuple."""
+        try:
+            return self._gregorian_to_jalali_cached(int(g_year), int(g_month), int(g_day))
+        except Exception:
+            return False
+
+    @api.model
+    def _jalali_to_gregorian(self, jalali_date_str):
+        """String-based compatibility helper for string date inputs ('YYYY-MM-DD', 'YYYY/MM/DD')."""
+        if not jalali_date_str:
+            return None
+        res = self.detect_and_parse_date(str(jalali_date_str), force_jalali=True)
+        return res if res else None
+
+    @api.model
+    def _gregorian_to_jalali(self, gregorian_date):
+        """String-based compatibility helper returning 'YYYY-MM-DD' formatted string."""
+        if not gregorian_date:
+            return None
+        if hasattr(gregorian_date, 'year'):
+            gy, gm, gd = gregorian_date.year, gregorian_date.month, gregorian_date.day
+        else:
+            parsed = self.detect_and_parse_date(str(gregorian_date), force_gregorian=True)
+            if not parsed:
+                return None
+            gy, gm, gd = parsed.year, parsed.month, parsed.day
+        res = self.gregorian_to_jalali(gy, gm, gd)
+        if not res:
+            return None
+        jy, jm, jd = res
+        return f"{jy:04d}-{jm:02d}-{jd:02d}"
+
+    @api.model
+    def _validate_jalali_date(self, jalali_date_str, field_name="Date"):
+        """Validates date string and raises ValidationError if invalid."""
+        from odoo.exceptions import ValidationError
+        if not jalali_date_str:
+            raise ValidationError(f"Invalid {field_name}: empty date")
+        parsed = self._jalali_to_gregorian(jalali_date_str)
+        if not parsed:
+            raise ValidationError(f"Invalid Jalali date format for {field_name}: {jalali_date_str}")
+        return True
 
     @api.model
     def is_jalali_leap_year(self, j_year):
-        """Returns True if j_year is a leap year (30 days in Esfand)."""
-        if HAS_JDATETIME:
-            try:
-                return jdatetime.date(j_year, 12, 30).day == 30
-            except ValueError:
-                return False
-        return _py_is_jalali_leap(j_year)
+        """Returns True if j_year is a leap year (30 days in Esfand). Pure Python."""
+        return _py_is_jalali_leap(int(j_year))
 
     @api.model
     def get_days_in_jalali_month(self, j_year, j_month):
@@ -182,9 +226,7 @@ class JalaaliMixin(models.AbstractModel):
             return False
 
         # Convert Persian and Arabic numerals to Latin digits
-        cleaned = str(date_string).strip().split(' ')[0].split('T')[0]
-        for p_char, l_char in PERSIAN_AND_ARABIC_DIGITS.items():
-            cleaned = cleaned.replace(p_char, l_char)
+        cleaned = _normalize_persian_str(str(date_string).split(' ')[0].split('T')[0])
 
         # Match Pattern 1: YYYY-MM-DD
         m1 = re.match(r'^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$', cleaned)

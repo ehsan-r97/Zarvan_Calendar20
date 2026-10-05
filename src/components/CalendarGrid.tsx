@@ -7,6 +7,7 @@ import {
   jalaaliToGregorian,
   getCurrentJalaaliDate,
   isLeapYear,
+  formatUserDate,
 } from '../lib/jalaali';
 import { HolidayRecord, CompanySetting, UserPreferences } from '../data/holidays';
 import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Info, Building2, Star } from 'lucide-react';
@@ -99,7 +100,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
           <div>
             <div className="flex items-center space-x-2 space-x-reverse">
               <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                {currentMonthData.name} {formatNum(selectedYear)}
+                {preferences.calendar_mode === 'gregorian'
+                  ? `${currentMonthData.latin} (${currentMonthData.baseName})`
+                  : preferences.calendar_mode === 'both'
+                  ? `${currentMonthData.baseName} (${formatNum(currentMonthData.id)}) ${formatNum(selectedYear)} (${currentMonthData.latin})`
+                  : `${currentMonthData.baseName} (${formatNum(currentMonthData.id)}) ${formatNum(selectedYear)}`}
               </h2>
               {isLeapYear(selectedYear) && (
                 <span className="px-2 py-0.5 text-xs font-medium bg-amber-400/20 text-amber-300 rounded-full border border-amber-300/30">
@@ -119,7 +124,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             onClick={handleGoToToday}
             className="px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 transition rounded-lg text-white border border-white/15"
           >
-            امروز ({formatNum(currentDate.year)}/{formatNum(currentDate.month)}/{formatNum(currentDate.day)})
+            امروز ({formatUserDate(currentDate.year, currentDate.month, currentDate.day, preferences)})
           </button>
 
           <div className="flex items-center bg-black/20 rounded-xl p-1 border border-white/10">
@@ -139,7 +144,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             >
               {PERSIAN_MONTHS.map((m) => (
                 <option key={m.id} value={m.id} className="text-slate-900 bg-white">
-                  {m.name}
+                  {preferences.calendar_mode === 'gregorian'
+                    ? `${m.latin} - ${m.baseName}`
+                    : `${m.baseName} (${formatNum(m.id)})`}
                 </option>
               ))}
             </select>
@@ -190,7 +197,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       <div className="grid grid-cols-7 border-collapse bg-slate-100/50 gap-px">
         {/* Leading empty cells for weekday offset */}
         {Array.from({ length: firstDayWeekday }).map((_, i) => (
-          <div key={`empty-${i}`} className="min-h-[90px] sm:min-h-[110px] bg-slate-50/40 p-2 border-slate-100" />
+          <div key={`empty-${i}`} className="min-h-[64px] sm:min-h-[105px] bg-slate-50/40 p-1 sm:p-2 border-slate-100" />
         ))}
 
         {/* Days of current month */}
@@ -220,14 +227,14 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 });
                 if (onSelectDate) onSelectDate(selectedYear, selectedMonth, day);
               }}
-              className={`min-h-[90px] sm:min-h-[110px] p-2 bg-white relative transition-all duration-150 hover:bg-emerald-50/60 cursor-pointer flex flex-col justify-between group ${
+              className={`min-h-[64px] sm:min-h-[105px] p-1 sm:p-2 bg-white relative transition-all duration-150 hover:bg-emerald-50/60 cursor-pointer flex flex-col justify-between group ${
                 isToday ? 'ring-2 ring-emerald-500 ring-inset z-10' : ''
               } ${isWeekend ? 'bg-rose-50/20' : ''}`}
             >
               {/* Day header */}
               <div className="flex items-start justify-between">
                 <span
-                  className={`inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-sm sm:text-base font-bold transition ${
+                  className={`inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg text-xs sm:text-base font-bold transition ${
                     isToday
                       ? 'bg-emerald-600 text-white shadow-sm'
                       : holiday
@@ -241,27 +248,28 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 </span>
 
                 {/* Gregorian date display */}
-                {preferences.show_gregorian && greg && (
-                  <span className="text-[10px] sm:text-xs text-slate-400 font-sans tracking-tight">
+                {(preferences.show_gregorian || preferences.calendar_mode === 'both' || preferences.calendar_mode === 'gregorian') && greg && (
+                  <span className={`text-[9px] sm:text-xs font-sans tracking-tight ${preferences.calendar_mode === 'gregorian' ? 'text-emerald-700 font-bold' : 'text-slate-400'}`}>
                     {greg.day}
                   </span>
                 )}
               </div>
 
               {/* Holiday indicator or Weekend badge */}
-              <div className="mt-1 space-y-1">
+              <div className="mt-0.5 sm:mt-1 space-y-1">
                 {holiday && (
                   <div
                     title={holiday.name}
-                    className="px-1.5 py-0.5 text-[10px] sm:text-xs rounded font-medium bg-rose-500 text-white truncate shadow-xs flex items-center gap-1"
+                    className="px-1 sm:px-1.5 py-0.5 text-[8px] sm:text-xs rounded font-medium bg-rose-500 text-white truncate shadow-xs flex items-center gap-1"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    <span className="truncate">{holiday.name}</span>
+                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white shrink-0 animate-pulse" />
+                    <span className="truncate hidden sm:inline">{holiday.name}</span>
+                    <span className="truncate sm:hidden">{holiday.name.slice(0, 7)}</span>
                   </div>
                 )}
 
                 {isWeekend && !holiday && (
-                  <div className="text-[10px] text-rose-500/80 font-medium px-1">
+                  <div className="text-[8px] sm:text-[10px] text-rose-500/80 font-medium px-0.5">
                     تعطیل
                   </div>
                 )}

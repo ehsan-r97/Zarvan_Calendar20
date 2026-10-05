@@ -9,9 +9,6 @@
                 <i class="fa fa-calendar-check-o text-success"/>
                 <span class="fw-bold small d-none d-md-inline" t-out="state.weekdayName"/>
                 <span class="small" t-out="state.jalaliDate"/>
-                <t t-if="state.isHoliday">
-                    <span class="badge bg-danger rounded-pill px-1.5 py-0.5 ms-1" style="font-size: 10px;">تعطیل</span>
-                </t>
             </button>
 
             <t t-if="state.isOpen">

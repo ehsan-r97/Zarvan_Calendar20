@@ -52,8 +52,9 @@ export class ZarvanTodaySystray extends Component {
 
         // Convert to Jalali
         const j = this.gregorianToJalali(gy, gm, gd);
+        // dayIdx: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
         const weekdays = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
-        const dayIdx = now.getDay(); // 0 = Sunday
+        const dayIdx = now.getDay();
         const weekday = weekdays[dayIdx];
 
         const monthNames = [
@@ -61,12 +62,37 @@ export class ZarvanTodaySystray extends Component {
             'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
         ];
 
-        this.state.weekdayName = weekday;
-        this.state.jalaliDate = `${j.day} ${monthNames[j.month - 1]} ${j.year}`;
-        this.state.jalaliNumeric = `${j.year}/${String(j.month).padStart(2, '0')}/${String(j.day).padStart(2, '0')}`;
-        this.state.gregorianDate = `${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`;
+        const s = session || (window.odoo && window.odoo.__session_info__) || {};
+        const mode = s.jalali_calendar_mode || user?.context?.jalali_calendar_mode || user?.jalali_calendar_mode || 'shamsi';
+        const useFa = Boolean(s.jalali_use_persian_numbers || user?.context?.jalali_use_persian_numbers || user?.jalali_use_persian_numbers);
+        const fmt = s.jalali_date_format || user?.context?.jalali_date_format || user?.jalali_date_format || 'YYYY/MM/DD';
 
-        // Friday is default weekend
+        const toFa = (str) => {
+            if (!useFa || !window.__zarvan?.toPersianDigits) return String(str);
+            return window.__zarvan.toPersianDigits(str);
+        };
+
+        const numericDate = fmt
+            .replace('YYYY', j.year)
+            .replace('MM', String(j.month).padStart(2, '0'))
+            .replace('DD', String(j.day).padStart(2, '0'));
+
+        const verboseDate = `${toFa(j.day)} ${monthNames[j.month - 1]} ${toFa(j.year)}`;
+        const gDateStr = `${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`;
+
+        this.state.weekdayName = weekday;
+        this.state.gregorianDate = gDateStr;
+        this.state.jalaliNumeric = toFa(numericDate);
+
+        if (mode === 'gregorian') {
+            this.state.jalaliDate = gDateStr;
+        } else if (mode === 'both') {
+            this.state.jalaliDate = `${verboseDate} (${gDateStr})`;
+        } else {
+            this.state.jalaliDate = verboseDate;
+        }
+
+        // Friday (dayIdx === 5) is default weekend
         if (dayIdx === 5) {
             this.state.isHoliday = true;
             this.state.holidayName = "جمعه (تعطیل پایان هفته)";

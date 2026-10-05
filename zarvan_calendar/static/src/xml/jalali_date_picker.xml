@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="zarvan_calendar.JalaliDatePicker">
-        <div class="o_jalali_date_picker position-relative d-inline-block w-100" style="direction: rtl;">
+        <div class="o_jalali_date_picker position-relative d-inline-block w-100" style="direction: rtl;" t-ref="root">
             <div class="input-group">
                 <input type="text"
                        class="form-control o_input text-start"
-                       style="direction: ltr; text-align: start;"
                        t-att-value="state.persianDisplay"
                        t-att-readonly="props.readonly ? 'readonly' : undefined"
                        t-on-change="onInputChange"
                        t-on-keydown="onInputKeydown"
-                       placeholder="YYYY/MM/DD (مثال: 1405/01/15)"/>
+                       placeholder="YYYY/MM/DD (مثال: ۱۴۰۵/۰۱/۱۵)"/>
                 <button class="btn btn-outline-secondary" type="button" t-on-click="togglePicker" t-att-disabled="props.readonly">
                     <i class="fa fa-calendar text-primary"/>
                 </button>
@@ -45,8 +44,8 @@
                             <select class="form-select form-select-sm py-0 px-1 text-center border-0 fw-bold bg-light"
                                     t-att-value="state.currentMonth"
                                     t-on-change="onMonthSelect"
-                                    style="width: 100px; cursor: pointer;">
-                                <t t-foreach="monthNames" t-as="mName" t-key="mName">
+                                    style="width: 125px; cursor: pointer;">
+                                <t t-foreach="monthNames" t-as="mName" t-key="mName_index">
                                     <option t-att-value="mName_index + 1" t-att-selected="state.currentMonth === mName_index + 1">
                                         <t t-out="mName"/>
                                     </option>
@@ -95,21 +94,11 @@
                         </t>
                     </div>
 
-                    <!-- Quick Action Footer: Today, Clear, and Mobile Close -->
-                    <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary py-1 px-3 small" t-on-click="selectToday">
-                                <i class="fa fa-calendar-check-o me-1"/> امروز
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-3 small" t-on-click="clearDate">
-                                <i class="fa fa-eraser me-1"/> پاک کردن
-                            </button>
-                        </div>
-                        <t t-if="isMobile">
-                            <button type="button" class="btn btn-sm btn-light border py-1 px-3 small" t-on-click="closePicker">
-                                بستن
-                            </button>
-                        </t>
+                    <!-- Quick Action Footer: Today Only (Minimalist) -->
+                    <div class="pt-2 border-top">
+                        <button type="button" class="btn btn-sm btn-outline-primary py-1.5 px-3 small w-100 fw-medium" t-on-click="selectToday">
+                            امروز
+                        </button>
                     </div>
                 </div>
             </t>

@@ -21,7 +21,14 @@ import {
   CompanySetting,
   UserPreferences,
 } from './data/holidays';
-import { getCurrentJalaaliDate, PERSIAN_MONTHS } from './lib/jalaali';
+import {
+  getCurrentJalaaliDate,
+  toPersianDigits,
+  PERSIAN_MONTHS,
+  formatDate,
+  formatUserDate,
+  gregorianToJalaali,
+} from './lib/jalaali';
 import {
   Calendar as CalendarIcon,
   ArrowLeftRight,
@@ -34,6 +41,8 @@ import {
   CalendarCheck2,
   Cpu,
   Sparkles,
+  Sun,
+  TestTube,
 } from 'lucide-react';
 
 export function App() {
@@ -48,6 +57,19 @@ export function App() {
   const [preferences, setPreferences] = useState<UserPreferences>(INITIAL_PREFERENCES);
   const [widgetValue, setWidgetValue] = useState<string>('2026-10-04');
   const [widgetJalaliValue, setWidgetJalaliValue] = useState<string>('1405/07/12');
+
+  // Dynamically update formatted values whenever user preferences or date values change
+  useEffect(() => {
+    if (widgetValue) {
+      const parts = widgetValue.split('-');
+      if (parts.length === 3) {
+        const j = gregorianToJalaali(parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2], 10));
+        if (j) {
+          setWidgetJalaliValue(formatUserDate(j.year, j.month, j.day, preferences));
+        }
+      }
+    }
+  }, [preferences, widgetValue]);
 
   // Load initial data from API or fall back to in-memory defaults
   useEffect(() => {
@@ -171,7 +193,7 @@ export function App() {
   };
 
   const formatNum = (num: number | string) => {
-    return num;
+    return preferences.use_persian_numbers ? toPersianDigits(num) : num;
   };
 
   return (
@@ -181,33 +203,33 @@ export function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo and Brand */}
-            <div className="flex items-center space-x-3 space-x-reverse">
-              <ZarvanLogo size={40} className="w-10 h-10 shrink-0" />
-              <div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <h1 className="font-extrabold text-lg text-slate-900 tracking-tight">
+            <div className="flex items-center space-x-2 sm:space-x-3 space-x-reverse min-w-0">
+              <ZarvanLogo size={36} className="w-9 h-9 sm:w-10 sm:h-10 shrink-0" />
+              <div className="min-w-0">
+                <div className="flex items-center space-x-1.5 space-x-reverse">
+                  <h1 className="font-extrabold text-sm sm:text-lg text-slate-900 tracking-tight truncate">
                     تقویم فارسی زروان
                   </h1>
-                  <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-800 rounded-md">
-                    Odoo 20 Enterprise (Cross-Compatible)
+                  <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded-md whitespace-nowrap hidden xs:inline-block">
+                    Odoo 20
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 hidden sm:block">
-                  موتور بومی‌سازی تقویم خورشیدی، تبدیل سراسری ویوها، پیوت و گزارش‌های رسمی
+                <p className="text-[11px] text-slate-500 hidden md:block">
+                  موتور بومی تقویم جلالی، رهگیری سراسری Zero-XML، گزارش‌های رسمی QWeb و فرمول‌های اسپردشیت
                 </p>
               </div>
             </div>
 
-            {/* Header Right Status Badges */}
-            <div className="flex items-center space-x-3 space-x-reverse">
+            {/* Header Right Status Badges (Clean & Minimalist) */}
+            <div className="flex items-center space-x-2 sm:space-x-3 space-x-reverse shrink-0">
               {/* Active company picker */}
               <div className="hidden md:flex items-center space-x-1.5 space-x-reverse bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
                 <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                <span className="text-slate-500">شرکت فعال:</span>
+                <span className="text-slate-500">شرکت:</span>
                 <select
                   value={activeCompanyId}
                   onChange={(e) => setActiveCompanyId(parseInt(e.target.value, 10))}
-                  className="bg-transparent font-semibold text-slate-800 outline-none cursor-pointer"
+                  className="bg-transparent font-semibold text-slate-800 outline-none cursor-pointer max-w-[120px] truncate"
                 >
                   {companies.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -217,19 +239,34 @@ export function App() {
                 </select>
               </div>
 
-              {/* Current Date Widget (Systray-style) */}
-              <div className="flex items-center space-x-2.5 space-x-reverse bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/90 px-3.5 py-1.5 rounded-xl shadow-xs">
-                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                  <CalendarCheck2 className="w-4 h-4" />
+              {/* Current Date Widget (Systray-style - Today Date Only) */}
+              <div className="flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/90 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl shadow-xs">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                  <CalendarCheck2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
                 <div className="text-right">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-800 font-sans">
-                      امروز: {currentDate.weekdayName}، {formatNum(currentDate.day)} {PERSIAN_MONTHS[currentDate.month - 1]?.name} {formatNum(currentDate.year)}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-bold text-slate-800 font-sans sm:hidden">
+                      {preferences.calendar_mode === 'gregorian'
+                        ? currentDate.gregorianDate
+                        : preferences.calendar_mode === 'both'
+                        ? `${formatNum(currentDate.day)} ${PERSIAN_MONTHS[currentDate.month - 1]?.name} (${currentDate.gregorianDate.slice(5)})`
+                        : `${formatNum(currentDate.day)} ${PERSIAN_MONTHS[currentDate.month - 1]?.name}`}
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 font-sans hidden sm:inline">
+                      {preferences.calendar_mode === 'gregorian'
+                        ? `امروز: ${currentDate.weekdayName}، ${currentDate.gregorianDate} (${currentDate.gregorianDate.slice(5, 7)})`
+                        : preferences.calendar_mode === 'both'
+                        ? `امروز: ${currentDate.weekdayName}، ${formatDate(currentDate.year, currentDate.month, currentDate.day, preferences.date_format, preferences.use_persian_numbers)} (${currentDate.gregorianDate})`
+                        : `امروز: ${currentDate.weekdayName}، ${formatDate(currentDate.year, currentDate.month, currentDate.day, preferences.date_format, preferences.use_persian_numbers)}`}
                     </span>
                   </div>
                   <span className="text-[10px] text-slate-500 block font-mono">
-                    {currentDate.gregorianDate} میلادی | {formatNum(currentDate.year)}/{formatNum(currentDate.month)}/{formatNum(currentDate.day)}
+                    {preferences.calendar_mode === 'gregorian'
+                      ? `حالت میلادی فعال (Odoo Gregorian Mode)`
+                      : preferences.calendar_mode === 'both'
+                      ? `${formatDate(currentDate.year, currentDate.month, currentDate.day, preferences.date_format, preferences.use_persian_numbers)} (${currentDate.gregorianDate})`
+                      : `${formatDate(currentDate.year, currentDate.month, currentDate.day, preferences.date_format, preferences.use_persian_numbers)} (شمسی)`}
                   </span>
                 </div>
               </div>
@@ -262,7 +299,7 @@ export function App() {
                 }`}
               >
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>آزمایشگاه تست‌های Odoo (29 تست استاندارد)</span>
+                <span>لابراتوار تست Odoo (۲۹ تست)</span>
                 <span className="px-1.5 py-0.2 text-[9px] bg-emerald-600 text-white rounded font-mono">
                   Test Lab
                 </span>
@@ -301,7 +338,7 @@ export function App() {
                 }`}
               >
                 <Layers className="w-4 h-4 text-amber-600" />
-                <span>ویجت انتخاب تاریخ (OWL 3)</span>
+                <span>ویجت انتخاب تاریخ (OWL Widget)</span>
               </button>
 
               <button
@@ -361,9 +398,12 @@ export function App() {
                 }`}
               >
                 <Cpu className="w-4 h-4 text-purple-600" />
-                <span>نسخه Odoo و ممیزی باگ‌ها</span>
+                <span>نسخه Odoo، ممیزی و تست‌ها</span>
+                <span className="px-1.5 py-0.2 text-[9px] bg-emerald-600 text-white rounded font-mono font-bold">
+                  35 Tests
+                </span>
                 <span className="px-1.5 py-0.2 text-[9px] bg-purple-700 text-white rounded font-mono">
-                  Odoo 20
+                  v20
                 </span>
               </button>
             </nav>
@@ -382,6 +422,8 @@ export function App() {
           />
         )}
 
+        {activeTab === 'testlab' && <OdooTestLab />}
+
         {activeTab === 'converter' && <DateConverter />}
 
         {activeTab === 'picker' && (
@@ -393,7 +435,7 @@ export function App() {
                 </span>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
-                    ویجت تعاملی فیلد تاریخ جلالی (OWL 3 Component)
+                    ویجت تعاملی فیلد تاریخ جلالی (OWL 3 Component - Odoo 20)
                   </h2>
                   <p className="text-xs text-slate-500">
                     پیاده‌سازی ماژول زروان با تبدیل ۱۰۰٪ سمت کلاینت (بدون نیاز به RPC سرور) و پشتیبانی از standardFieldProps
@@ -440,12 +482,11 @@ export function App() {
           </div>
         )}
 
-        {activeTab === 'testlab' && <OdooTestLab />}
-
         {activeTab === 'simulator' && (
           <OdooLiveSimulator
             calendarMode={preferences.calendar_mode || 'shamsi'}
             usePersianNum={preferences.use_persian_numbers}
+            dateFormat={preferences.date_format}
           />
         )}
 
@@ -487,7 +528,7 @@ export function App() {
       <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
           <span>
-            ماژول تقویم زروان (Zarvan Persian Calendar) • نسخه 20.0.1.0.0 (سازگار با Odoo 20 و 19)
+            ماژول تقویم زروان (Zarvan Persian Calendar) • نسخه 20.0.1.0.0 (Odoo 20 Enterprise & Community)
           </span>
           <span className="font-mono text-[11px] text-slate-400">
             توسعه‌یافته بر اساس ساختار Odoo توسط احسان رضایی (ehsan.r97@gmail.com)

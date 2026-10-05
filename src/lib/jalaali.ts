@@ -13,18 +13,33 @@ export interface GregorianDate {
 }
 
 export const PERSIAN_MONTHS = [
-  { id: 1, name: 'فروردین', latin: 'Farvardin', season: 'بهار (Spring)', days: 31 },
-  { id: 2, name: 'اردیبهشت', latin: 'Ordibehesht', season: 'بهار (Spring)', days: 31 },
-  { id: 3, name: 'خرداد', latin: 'Khordad', season: 'بهار (Spring)', days: 31 },
-  { id: 4, name: 'تیر', latin: 'Tir', season: 'تابستان (Summer)', days: 31 },
-  { id: 5, name: 'مرداد', latin: 'Mordad', season: 'تابستان (Summer)', days: 31 },
-  { id: 6, name: 'شهریور', latin: 'Shahrivar', season: 'تابستان (Summer)', days: 31 },
-  { id: 7, name: 'مهر', latin: 'Mehr', season: 'پاییز (Autumn)', days: 30 },
-  { id: 8, name: 'آبان', latin: 'Aban', season: 'پاییز (Autumn)', days: 30 },
-  { id: 9, name: 'آذر', latin: 'Azar', season: 'پاییز (Autumn)', days: 30 },
-  { id: 10, name: 'دی', latin: 'Dey', season: 'زمستان (Winter)', days: 30 },
-  { id: 11, name: 'بهمن', latin: 'Bahman', season: 'زمستان (Winter)', days: 30 },
-  { id: 12, name: 'اسفند', latin: 'Esfand', season: 'زمستان (Winter)', days: 29 }, // 30 in leap
+  { id: 1, name: 'فروردین (۱)', baseName: 'فروردین', latin: 'Farvardin (01)', season: 'بهار (Spring)', days: 31 },
+  { id: 2, name: 'اردیبهشت (۲)', baseName: 'اردیبهشت', latin: 'Ordibehesht (02)', season: 'بهار (Spring)', days: 31 },
+  { id: 3, name: 'خرداد (۳)', baseName: 'خرداد', latin: 'Khordad (03)', season: 'بهار (Spring)', days: 31 },
+  { id: 4, name: 'تیر (۴)', baseName: 'تیر', latin: 'Tir (04)', season: 'تابستان (Summer)', days: 31 },
+  { id: 5, name: 'مرداد (۵)', baseName: 'مرداد', latin: 'Mordad (05)', season: 'تابستان (Summer)', days: 31 },
+  { id: 6, name: 'شهریور (۶)', baseName: 'شهریور', latin: 'Shahrivar (06)', season: 'تابستان (Summer)', days: 31 },
+  { id: 7, name: 'مهر (۷)', baseName: 'مهر', latin: 'Mehr (07)', season: 'پاییز (Autumn)', days: 30 },
+  { id: 8, name: 'آبان (۸)', baseName: 'آبان', latin: 'Aban (08)', season: 'پاییز (Autumn)', days: 30 },
+  { id: 9, name: 'آذر (۹)', baseName: 'آذر', latin: 'Azar (09)', season: 'پاییز (Autumn)', days: 30 },
+  { id: 10, name: 'دی (۱۰)', baseName: 'دی', latin: 'Dey (10)', season: 'زمستان (Winter)', days: 30 },
+  { id: 11, name: 'بهمن (۱۱)', baseName: 'بهمن', latin: 'Bahman (11)', season: 'زمستان (Winter)', days: 30 },
+  { id: 12, name: 'اسفند (۱۲)', baseName: 'اسفند', latin: 'Esfand (12)', season: 'زمستان (Winter)', days: 29 }, // 30 in leap
+];
+
+export const GREGORIAN_MONTHS = [
+  { id: 1, name: 'January (01)', short: 'Jan (01)' },
+  { id: 2, name: 'February (02)', short: 'Feb (02)' },
+  { id: 3, name: 'March (03)', short: 'Mar (03)' },
+  { id: 4, name: 'April (04)', short: 'Apr (04)' },
+  { id: 5, name: 'May (05)', short: 'May (05)' },
+  { id: 6, name: 'June (06)', short: 'Jun (06)' },
+  { id: 7, name: 'July (07)', short: 'Jul (07)' },
+  { id: 8, name: 'August (08)', short: 'Aug (08)' },
+  { id: 9, name: 'September (09)', short: 'Sep (09)' },
+  { id: 10, name: 'October (10)', short: 'Oct (10)' },
+  { id: 11, name: 'November (11)', short: 'Nov (11)' },
+  { id: 12, name: 'December (12)', short: 'Dec (12)' },
 ];
 
 export const PERSIAN_WEEKDAYS = [
@@ -137,18 +152,54 @@ export function formatDate(
   month: number,
   day: number,
   format: string = 'YYYY/MM/DD',
-  usePersianNumbers: boolean = false
+  usePersianNumbers: boolean = false,
+  mode: 'shamsi' | 'gregorian' | 'both' = 'shamsi'
 ): string {
   const yStr = String(year);
   const mStr = String(month).padStart(2, '0');
   const dStr = String(day).padStart(2, '0');
 
-  let result = format
+  let shamsiStr = format
     .replace('YYYY', yStr)
     .replace('MM', mStr)
     .replace('DD', dStr);
 
-  return usePersianNumbers ? toPersianDigits(result) : result;
+  if (usePersianNumbers) {
+    shamsiStr = toPersianDigits(shamsiStr);
+  }
+
+  const greg = jalaaliToGregorian(year, month, day);
+  const gIso = greg
+    ? `${greg.year}-${String(greg.month).padStart(2, '0')}-${String(greg.day).padStart(2, '0')}`
+    : '';
+
+  if (mode === 'gregorian') {
+    return gIso;
+  }
+  if (mode === 'both') {
+    return `${shamsiStr} (${gIso})`;
+  }
+  return shamsiStr;
+}
+
+export function formatUserDate(
+  year: number,
+  month: number,
+  day: number,
+  preferences: {
+    calendar_mode?: 'shamsi' | 'gregorian' | 'both';
+    date_format?: string;
+    use_persian_numbers?: boolean;
+  }
+): string {
+  return formatDate(
+    year,
+    month,
+    day,
+    preferences.date_format || 'YYYY/MM/DD',
+    Boolean(preferences.use_persian_numbers),
+    preferences.calendar_mode || 'shamsi'
+  );
 }
 
 const PERSIAN_MONTH_NAMES_MAP: Record<string, number> = {

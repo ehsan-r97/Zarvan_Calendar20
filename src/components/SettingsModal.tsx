@@ -15,7 +15,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUpdateCompany,
   onUpdatePreferences,
 }) => {
-  const [activeTab, setActiveTab] = useState<'company' | 'user'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'user'>('user');
   const [selectedCompId, setSelectedCompId] = useState<number>(companies[0]?.id || 1);
 
   const currentComp = companies.find((c) => c.id === selectedCompId) || companies[0];
@@ -87,20 +87,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Tab switch */}
         <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
           <button
-            onClick={() => setActiveTab('company')}
-            className={`px-3 py-1.5 rounded-lg transition ${
-              activeTab === 'company' ? 'bg-white shadow-xs text-emerald-800' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            تنظیمات شرکت‌ها (res.company)
-          </button>
-          <button
             onClick={() => setActiveTab('user')}
             className={`px-3 py-1.5 rounded-lg transition ${
               activeTab === 'user' ? 'bg-white shadow-xs text-emerald-800' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             ترجیحات کاربر (res.users)
+          </button>
+          <button
+            onClick={() => setActiveTab('company')}
+            className={`px-3 py-1.5 rounded-lg transition ${
+              activeTab === 'company' ? 'bg-white shadow-xs text-emerald-800' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            تنظیمات شرکت‌ها (res.company)
           </button>
         </div>
       </div>
